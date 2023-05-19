@@ -87,7 +87,7 @@ class Eagle:
         for bearing in range(0,359,10):
             if bearing % 30 != 0:
                 start_x,start_y = pot_of_gold(cx, cy, large_offset, bearing)
-                line_aliased(start_x, start_y, distance, bearing, color_main = '88888818')
+                line_aliased(start_x, start_y, distance, bearing, color_main = 'bbbbbb55')
 
         if self.bearing >= 0:
             # draw selected bearing line            
@@ -142,30 +142,28 @@ def parse_cardinal(direction: str, distance: int) -> Tuple[bool, int]:
         return False, y + distance
     raise ValueError(f"unsupported cardinal direction: {direction}")
 
-@mod.capture(rule="north|south|east|west|northeast|northwest|southeast|southwest")
-def bearing_capture(m) -> int:
+@mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)] | up | down | right | left)")
+def bearing_capture(m) -> float:
     """determines bearing from spoken compass direction"""
-    print('bearing capture function')
-    print('input: {} length {} type {}'.format(m, len(m), type(m)))
-    if 'northeast' in m:
-        return 45
-    elif 'northwest' in m:
-        return 315
-    elif 'southeast' in m:
-        return 135
-    elif 'southwest' in m:
-        return 225
-    elif 'north' in m:
-        return 0
-    elif 'east' in m:
-        return 90
-    elif 'south' in m:
-        return 180
-    elif 'west' in m:
-        return 270
-    else:
-        return -999
-
+    print('bearing capture, input: {} | length: {}'.format(m,len(m)))
+    def bearing_average(b1,b2):
+        difference = ((b2 - b1 + 180) % 360) - 180
+        return b1 + difference/2
+        
+    bearing_lookup = {
+        'northeast':45,'southeast':135,'southwest':225,'northwest':315,
+        'north':0,'east':90,'south':180,'west':270,
+        'up':0,'right':90,'down':180,'left':270
+        }
+    bearing = None
+    for w in range(len(m)-1,-1,-1):
+        if bearing == None:
+            bearing = bearing_lookup[m[w]]
+        else:
+            bearing = bearing_average(bearing, bearing_lookup[m[w]])
+    print("result: {}".format(bearing))
+    return bearing
+        
 @mod.action_class
 class Actions:
     def Eagle_enable():
@@ -182,12 +180,12 @@ class Actions:
         """Toggle relative mouse guide"""
         eagle_object.toggle()
 
-    def set_cardinal(target: int):
+    def set_cardinal(target: float):
         """set the bearing to a cardinal direction"""
         eagle_object.bearing = target
         print('bearing {}'.format(eagle_object.bearing))
 
-    def move_cardinal(move_degrees: int, target: int):
+    def move_cardinal(move_degrees: int, target: float):
         """move the bearing direction a certain number of degrees towards a cardinal direction"""
         print('new move cardinal function')
         print("input move_degrees: {}".format(move_degrees))
@@ -226,5 +224,11 @@ class Actions:
         """move back toward center the specified number of pixels"""
         eagle_object.bearing = (eagle_object.bearing + 180) % 360
         eagle_object.distance = eagle_object.distance + distance
+
+    def test(d1: float):
+        """test function"""
+        x = 3
+
+        
 
 ctx = Context()
