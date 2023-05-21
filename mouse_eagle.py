@@ -15,6 +15,7 @@ class Eagle:
         self.height = height
         self.bearing = -1
         self.distance = 0
+        self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
         
     def enable(self):
         if self.enabled:
@@ -59,6 +60,8 @@ class Eagle:
         paint = canvas.paint
         paint.antialias = True
         paint.color = 'fff'
+        paint.font.size = 36
+        
         rect = canvas.rect
 
         cx, cy = self.last_pos
@@ -73,34 +76,84 @@ class Eagle:
                 finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
                 canvas.draw_line(start_x, start_y, finish_x, finish_y)
 
+        def text_aliased(label,x,y,font_size):
+                paint.font.size = font_size
+                # outline-white and less transparenth
+                paint.color = 'ffffffcc'
+                canvas.draw_text(label,x-1,y-1)
+                canvas.draw_text(label,x+1,y-1)
+                # spine-black and more transparent
+                paint.color = '00000077'
+                canvas.draw_text(label,x-2,y-2)
+
         # get spoke parameters
         distance = 5000
-        small_offset = 10
-        large_offset = 100
+        tiny_offset = 10
+        small_offset = 225
+        small_extent = 50
+        large_offset = 200
+        large_extent = 100
+        label_offset = 320
 
-        # draw major spokes
-        for bearing in range(0,359,30):
-            start_x,start_y = pot_of_gold(cx,cy,small_offset,bearing)
+        # draw diagonals
+        for bearing in range(45,359,90):
+            start_x,start_y = pot_of_gold(cx,cy,tiny_offset,bearing)
             line_aliased(start_x, start_y, distance, bearing)
-            
-        # draw minor spokes
-        for bearing in range(0,359,10):
-            if bearing % 30 != 0:
-                start_x,start_y = pot_of_gold(cx, cy, large_offset, bearing)
-                line_aliased(start_x, start_y, distance, bearing, color_main = 'bbbbbb55')
-
-        if self.bearing >= 0:
+        
+        # bearing not selected
+        if self.bearing  == -1:
+            # draw minor spokes
+            for bearing in range(0,359,45):
+                if bearing % 90 == 0:
+                    start_x,start_y = pot_of_gold(cx, cy, large_offset, bearing)
+                    line_aliased(start_x, start_y, large_extent, bearing)
+            for bearing_x10 in range(0,3590,225):
+                bearing = bearing_x10/10
+                if bearing % 45 != 0:
+                    start_x,start_y = pot_of_gold(cx, cy, small_offset, bearing)
+                    line_aliased(start_x, start_y, small_extent, bearing)
+            # draw labels for cardinal directions
+            paint.color = 'ffffffff'
+            for bearing,label in zip([0,90,180,270],['North','East','South','West']):
+                start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
+                text_aliased(label,start_x,start_y,45)
+                
+        # bearing selected
+        else:
             # draw selected bearing line            
             line_aliased(cx, cy, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
+            
+            # draw distance hash lines
+            for spacing, size in [(100,27),(50,18),(10,12),(500,48)]:
+                for i in range(int(self.max_distance/spacing) + 1):
+                    for inout in [-1,1]:
+                        d = self.distance + spacing * i * inout
+                        if d > 0:
+                            x,y = pot_of_gold(cx,cy,d,self.bearing)
+                            sx,sy = pot_of_gold(x,y,size/2,self.bearing - 90)
+                            print("sx,sy: {}".format((sx,sy)))
+                            line_aliased(sx,sy,size,self.bearing + 90)
+                            # draw labels for big lines
+                            if spacing == 500 or (spacing == 100 and i % 5 != 0):
+                                if 0 < self.bearing < 180:
+                                    # draw text to left
+                                    sx,sy = pot_of_gold(sx,sy,5,self.bearing - 90)
+                                else:
+                                    sx,sy = pot_of_gold(sx,sy,size + 5,self.bearing-90)
+                                if spacing == 500:
+                                    fs = 27                                
+                                else:
+                                    fs = 18
+                                text_aliased(str(spacing * i),sx,sy,fs)
             
             if self.distance > 0:              
                 # UPDATE mouse position
                 x,y = pot_of_gold(cx, cy, self.distance, self.bearing)
                 print("x moving {} from {} to {}".format(self.distance,cx,x))
                 x = max(x,0)
-                x = min(x,self.width)
+                x = min(x,self.width-1)
                 y = max(y,0)
-                y = min(y,self.height)
+                y = min(y,self.height-1)
                 ctrl.mouse_move(x, y)
                 self.distance = 0
                 self.last_pos = x,y
