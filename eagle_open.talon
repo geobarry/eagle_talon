@@ -20,11 +20,6 @@ tag: user.eagle_showing
 fly <number>:
 	user.fly_out(number_1)
 
-# move mouse back in specify distance towards center 
-# for example 'return 50'
-return <number>:
-	user.fly_back(number_1)
-	
 # test Talon input of optional parameters
 test <user.bearing_capture>:
 	user.test(user.bearing_capture)

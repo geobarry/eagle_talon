@@ -3,7 +3,7 @@ from typing import Tuple
 
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui
 
-import math
+import math, time
 
 class Eagle:
     def __init__(self, width: float, height: float):
@@ -17,12 +17,12 @@ class Eagle:
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
         
-    def enable(self):
+    def enable(self, bearing = -1):
         if self.enabled:
             return
         self.enabled = True
         self.last_pos = ctrl.mouse_pos()        
-        
+        self.bearing = bearing
         print("position: {}".format(self.last_pos))
         
         screen = ui.main_screen()
@@ -86,6 +86,31 @@ class Eagle:
                 paint.color = '00000077'
                 canvas.draw_text(label,x-2,y-2)
 
+        def left_cardinal(bearing):
+            if 45 < bearing <= 135:
+                return 'N'
+            elif bearing <= 225:
+                return 'E'
+            elif bearing <= 315:
+                return 'S'
+            elif bearing <= 360 and bearing >= 0:
+                return 'W'
+            else:
+                return ''
+
+        def right_cardinal(bearing):
+            if 0 <= bearing < 45 or 315 <= bearing <= 360:
+                return 'E'
+            elif bearing < 135:
+                return 'S'
+            elif bearing < 225:
+                return 'W'
+            elif bearing < 315:
+                return 'N'
+            else:
+                return ''
+
+
         # get spoke parameters
         distance = 5000
         tiny_offset = 10
@@ -94,14 +119,13 @@ class Eagle:
         large_offset = 200
         large_extent = 100
         label_offset = 320
-
-        # draw diagonals
-        for bearing in range(45,359,90):
-            start_x,start_y = pot_of_gold(cx,cy,tiny_offset,bearing)
-            line_aliased(start_x, start_y, distance, bearing)
         
         # bearing not selected
         if self.bearing  == -1:
+            # draw diagonals
+            for bearing in range(45,359,90):
+                start_x,start_y = pot_of_gold(cx,cy,tiny_offset,bearing)
+                line_aliased(start_x, start_y, distance, bearing)
             # draw minor spokes
             for bearing in range(0,359,45):
                 if bearing % 90 == 0:
@@ -122,6 +146,30 @@ class Eagle:
         else:
             # draw selected bearing line            
             line_aliased(cx, cy, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
+            
+            # draw bearings fifty degrees on either side
+            for left_right in [-1,1]:
+                if left_right == -1:
+                    cardinal = left_cardinal(self.bearing)
+                else:
+                    cardinal = right_cardinal(self.bearing)
+                for bearing_adjust in [10,20,30,40,50]:
+                    b = self.bearing + bearing_adjust * left_right
+                    start_x,start_y = pot_of_gold(cx,cy,100,b)
+                    line_aliased(start_x,start_y,distance,b)
+                    text_x,text_y = pot_of_gold(cx,cy,460,b)
+                    label = "{}{}".format(str(abs(bearing_adjust)), cardinal)
+                    text_aliased(label,text_x,text_y,18)
+                for bearing_adjust in range(50):
+                    if bearing_adjust % 10 != 0:
+                        b = self.bearing + bearing_adjust * left_right
+                        if bearing_adjust % 5 == 0:
+                            extra_length = 7
+                        else:
+                            extra_length = 0
+                        for out_distance in [300,600]:
+                            start_x,start_y = pot_of_gold(cx,cy,out_distance - extra_length,b)
+                            line_aliased(start_x,start_y,20 + extra_length * 2,b)
             
             # draw distance hash lines
             for spacing, size in [(100,27),(50,18),(10,12),(500,48)]:
@@ -223,6 +271,13 @@ class Actions:
         """Enable relative mouse guide"""
         eagle_object.enable()
         ctx.tags = ["user.eagle_showing"]
+
+    def eagle_head_start(bearing: float):
+        """enable relative mouse guide and point to given bearing direction"""
+        eagle_object.enable(bearing)
+        ctx.tags = ["user.eagle_showing"]
+            
+        
         
     def Eagle_disable():
         """Disable relative mouse guide"""
@@ -272,11 +327,6 @@ class Actions:
         
         print("function move_out")
         print("distance: {}".format(eagle_object.distance))
-
-    def fly_back(distance: int):
-        """move back toward center the specified number of pixels"""
-        eagle_object.bearing = (eagle_object.bearing + 180) % 360
-        eagle_object.distance = eagle_object.distance + distance
 
     def test(d1: float):
         """test function"""
