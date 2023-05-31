@@ -8,9 +8,9 @@ Mouse movement is critical for effectively controlling your computer with voice,
 Clone it to your talon user folder, just like any other set of talon control files. 
 # How do I use this? 
 The basic set of commands goes something like this:
->> Eagle On ............. a compass rose will appear
->> North ................ choose any cardinal direction; a navigation grid will appear
->> 20 East .............. adjust the cardinal direction
->> Fly 300 .............. move the mouse a specified distance in pixels
->> Touch ................ use standard talon mouse commands at any point
->> Eagle Off ............ removes the navigation grid or compass rose
+* Eagle On ............. a compass rose will appear
+* North ................ choose any cardinal direction; a navigation grid will appear
+* 20 East .............. adjust the cardinal direction
+* Fly 300 .............. move the mouse a specified distance in pixels
+* Touch ................ use standard talon mouse commands at any point
+* Eagle Off ............ removes the navigation grid or compass rose
