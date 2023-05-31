@@ -6,8 +6,8 @@ This is for people who have already set up talon voice to control their computer
 Clone it to your talon user folder, just like any other set of talon control files. 
 # Basic Usage 
 A basic sequence of commands goes something like this:
-``` Eagle On ```  show a compass rose
-``` North ```  ................ choose any cardinal direction; a navigation grid will appear showing direction adjustments and distances and pixels
+``` Eagle On ```  
+``` North ```  
 ``` 20 East ```  .............. adjust the cardinal direction
 ``` Fly 300 ```  .............. move the mouse a specified distance in pixels
 ``` Touch ```  ................ use standard talon mouse commands at any time
