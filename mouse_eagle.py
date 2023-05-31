@@ -18,11 +18,12 @@ class Eagle:
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
         
     def enable(self, bearing = -1):
+        self.bearing = bearing
         if self.enabled:
             return
         self.enabled = True
         self.last_pos = ctrl.mouse_pos()        
-        self.bearing = bearing
+        
         print("position: {}".format(self.last_pos))
         
         screen = ui.main_screen()
@@ -35,7 +36,7 @@ class Eagle:
         print("eagle on...")
         print("Eagle position: {}".format(self.last_pos))
         # uncomment this if the mouse movement event isn't working
-        #self.job = cron.interval('1600ms', self.check_mouse)
+        #self.job = cron.interval('16ms', self.check_mouse)
 
         print("self.canvas.rect.width: {}".format(self.canvas.rect.width))
         print("self.canvas.rect.height: {}".format(self.canvas.rect.height))
@@ -141,6 +142,14 @@ class Eagle:
             for bearing,label in zip([0,90,180,270],['North','East','South','West']):
                 start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
                 text_aliased(label,start_x,start_y,45)
+            paint.color = 'DDDDDDDD'
+            for bearing,label in zip([45,135,225,315],['NE', 'SE','SW','NW']):
+                start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
+                text_aliased(label,start_x,start_y,30)
+            paint.color = 'BBBBBB99'
+            for bearing,label in zip([22.5,67.5,112.5,157.5,202.5,247.5,292.5,337.5],['NNE', 'ENE','ESE','SSE','SSW','WSW','WNW','NNW']):
+                start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
+                text_aliased(label,start_x,start_y,18)
                 
         # bearing selected
         else:
@@ -179,7 +188,7 @@ class Eagle:
                         if d > 0:
                             x,y = pot_of_gold(cx,cy,d,self.bearing)
                             sx,sy = pot_of_gold(x,y,size/2,self.bearing - 90)
-                            print("sx,sy: {}".format((sx,sy)))
+                            #print("sx,sy: {}".format((sx,sy)))
                             line_aliased(sx,sy,size,self.bearing + 90)
                             # draw labels for big lines
                             if spacing == 500 or (spacing == 100 and i % 5 != 0):
@@ -276,8 +285,6 @@ class Actions:
         """enable relative mouse guide and point to given bearing direction"""
         eagle_object.enable(bearing)
         ctx.tags = ["user.eagle_showing"]
-            
-        
         
     def Eagle_disable():
         """Disable relative mouse guide"""
