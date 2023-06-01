@@ -21,7 +21,7 @@ A basic sequence of commands goes something like this:
 ``` <compass direction> ```  
   * set Eagle's bearing to the given compass direction  
   * a navigation grid will appear showing direction adjustments (in degrees) and distances (in pixels)
-  * options include ```North``` ```East``` ```South``` ```West```  
+  * options include ```North``` ```East``` ```South``` ```West``` ```northeast``` ```southeast``` ```southwest``` ```northwest``` ```north-northeast``` ```east-northeast``` ```east-southeast``` ```south-southeast``` ```south-southwest``` ```west-southwest``` ```west-northwest``` ```north-northwest``` ```up``` ```right``` ```down``` ```left```  
 
 ``` <number> <compass direction> ```  
   * shifts Eagle's bearing by the given number of degrees towards the given compass direction  
