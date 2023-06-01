@@ -14,14 +14,17 @@ A basic sequence of commands goes something like this:
 ``` Eagle Off ```  
 # Detailed Commands
 ``` Eagle On ```  
-* starts Eagle  
-* shows a compass rose  
+  * starts Eagle  
+  * shows a compass rose  
+
 ``` <compass direction> ```  
-* set Eagle's bearing to the given compass direction  
-* a navigation grid will appear showing direction adjustments (in degrees) and distances (in pixels)
-* options include ```North``` ```East``` ```South``` ```West```  
+  * set Eagle's bearing to the given compass direction  
+  * a navigation grid will appear showing direction adjustments (in degrees) and distances (in pixels)
+  * options include ```North``` ```East``` ```South``` ```West```  
+
 ``` <number> <compass direction> ```  
-* shifts Eagle's bearing the given number of degrees towards the given compass direction  
+  * shifts Eagle's bearing the given number of degrees towards the given compass direction  
+  
 ``` Fly 300 ```  .............. move the mouse a specified distance in pixels
 ``` Touch ```  ................ use standard talon mouse commands at any time
 ``` Eagle Off ```  ............ hide the navigation grid or compass rose
