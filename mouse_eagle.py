@@ -28,7 +28,7 @@ class Eagle:
         
         screen = ui.main_screen()
         self.width, self.height = screen.width, screen.height
-        self.canvas = canvas.Canvas(0, 0, self.width, self.height)
+        self.canvas = canvas.Canvas.from_screen(screen)#  canvas.Canvas(0, 0, self.width, self.height)
 
         self.canvas.register('mousemove', self.on_mouse)
         self.canvas.register('draw', self.draw_canvas) 
