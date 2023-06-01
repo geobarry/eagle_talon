@@ -24,10 +24,10 @@ A basic sequence of commands goes something like this:
   * options include ```North``` ```East``` ```South``` ```West```  
 
 ``` <number> <compass direction> ```  
-  * shifts Eagle's bearing the given number of degrees towards the given compass direction  
+  * shifts Eagle's bearing by the given number of degrees towards the given compass direction  
 
 ``` Fly <number> ```  
-  * moves the mouse a specified distance in pixels  
+  * moves the mouse the specified distance in pixels in the direction of Eagle's current bearing  
 
 ``` Eagle Off ```  
   * closes Eagle and hides the navigation grid or compass rose
