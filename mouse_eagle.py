@@ -77,15 +77,30 @@ class Eagle:
                 finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
                 canvas.draw_line(start_x, start_y, finish_x, finish_y)
 
+        def line_thick_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
+            for off, color in ((1, color_alias),(-1, color_alias),(0.5, color_main),(-0.5, color_main),(0, color_main)):
+                paint.color = color
+                start_x,start_y = pot_of_gold(x,y,off,bearing + 90)
+                finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
+                canvas.draw_line(start_x, start_y, finish_x, finish_y)
+
         def text_aliased(label,x,y,font_size):
                 paint.font.size = font_size
-                # outline-white and less transparenth
-                paint.color = 'ffffffcc'
-                canvas.draw_text(label,x-1,y-1)
-                canvas.draw_text(label,x+1,y-1)
                 # spine-black and more transparent
                 paint.color = '00000077'
                 canvas.draw_text(label,x-2,y-2)
+                canvas.draw_text(label,x+2,y-2)
+                canvas.draw_text(label,x+2,y+2)
+                canvas.draw_text(label,x-2,y+2)
+                canvas.draw_text(label,x-2,y-1)
+                canvas.draw_text(label,x+1,y-1)
+                canvas.draw_text(label,x+1,y+1)
+                canvas.draw_text(label,x-2,y+1)
+
+                # outline-white and less transparent
+                paint.color = 'ffffffee'
+                canvas.draw_text(label,x,y)
+                canvas.draw_text(label,x+1,y-1)
 
         def left_cardinal(bearing):
             if 45 < bearing <= 135:
@@ -154,8 +169,13 @@ class Eagle:
         # bearing selected
         else:
             # draw selected bearing line            
-            line_aliased(cx, cy, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
-            
+            start_x,start_y = pot_of_gold(cx,cy,5,self.bearing)
+            line_thick_aliased(start_x, start_y, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
+            # draw crosshairs
+            for bearing_adjust in [90,180,270]:
+                start_x,start_y = pot_of_gold(cx,cy,5,self.bearing + bearing_adjust)
+                line_aliased(start_x, start_y, 5, self.bearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
+                
             # draw bearings fifty degrees on either side
             for left_right in [-1,1]:
                 if left_right == -1:
@@ -176,7 +196,7 @@ class Eagle:
                             extra_length = 7
                         else:
                             extra_length = 0
-                        for out_distance in [300,600]:
+                        for out_distance in [250,550]:
                             start_x,start_y = pot_of_gold(cx,cy,out_distance - extra_length,b)
                             line_aliased(start_x,start_y,20 + extra_length * 2,b)
             
@@ -188,8 +208,10 @@ class Eagle:
                         if d > 0:
                             x,y = pot_of_gold(cx,cy,d,self.bearing)
                             sx,sy = pot_of_gold(x,y,size/2,self.bearing - 90)
-                            #print("sx,sy: {}".format((sx,sy)))
-                            line_aliased(sx,sy,size,self.bearing + 90)
+                            if spacing == 10:
+                                line_aliased(sx,sy,size,self.bearing + 90)
+                            else:
+                                line_thick_aliased(sx,sy,size,self.bearing + 90)
                             # draw labels for big lines
                             if spacing == 500 or (spacing == 100 and i % 5 != 0):
                                 if 0 < self.bearing < 180:
