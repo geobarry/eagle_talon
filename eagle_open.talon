@@ -19,7 +19,3 @@ tag: user.eagle_showing
 # for example 'fly five hundred'
 fly <number>:
 	user.fly_out(number_1)
-
-# test Talon input of optional parameters
-test <user.bearing_capture>:
-	user.test(user.bearing_capture)

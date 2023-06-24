@@ -71,14 +71,14 @@ class Eagle:
             return  x + distance * math.sin(math.radians(bearing)), y - distance * math.cos(math.radians(bearing))
 
         def line_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
-            for off, color in ((0.5, color_alias),(-0.5, color_alias),(0, color_main)):
+            for off, color in ((1, color_alias),(-1, color_alias),(0.5, color_main),(-0.5, color_main),(0, color_main)):
                 paint.color = color
                 start_x,start_y = pot_of_gold(x,y,off,bearing + 90)
                 finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
                 canvas.draw_line(start_x, start_y, finish_x, finish_y)
 
         def line_thick_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
-            for off, color in ((1, color_alias),(-1, color_alias),(0.5, color_main),(-0.5, color_main),(0, color_main)):
+            for off, color in ((1.5, color_alias),(-1.5, color_alias),(1, color_main),(-1, color_main),(0.5, color_main),(-0.5, color_main),(0, color_main)):
                 paint.color = color
                 start_x,start_y = pot_of_gold(x,y,off,bearing + 90)
                 finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
@@ -103,11 +103,12 @@ class Eagle:
                 canvas.draw_text(label,x+1,y-1)
 
         def left_cardinal(bearing):
+            print(bearing)
             if 45 < bearing <= 135:
                 return 'N'
-            elif bearing <= 225:
+            elif 135 <= bearing <= 225:
                 return 'E'
-            elif bearing <= 315:
+            elif 225 <= bearing <= 315:
                 return 'S'
             elif bearing <= 360 and bearing >= 0:
                 return 'W'
@@ -126,70 +127,81 @@ class Eagle:
             else:
                 return ''
 
-
         # get spoke parameters
         distance = 5000
-        tiny_offset = 10
-        small_offset = 225
-        small_extent = 50
-        large_offset = 200
-        large_extent = 100
-        label_offset = 320
+        crosshair_radius = 30
+        long_crosshair_length = 12
+        short_crosshair_length = 5
+
+        inner_compass_radius = 250
+        outer_compass_radius = 200
+        short_compass_mark_length = 50
+        long_compass_mark_length = 100
+        label_offset = 25
+
+        # draw crosshairs around current mouse position
+        startBearing = max(0,self.bearing)
+        for bearing_adjust in [0,90,180,270]:
+            start_x,start_y = pot_of_gold(cx,cy,crosshair_radius-long_crosshair_length,startBearing + bearing_adjust)
+            line_aliased(start_x, start_y, long_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
+        for bearing_adjust in range(0,360,10):
+            if not bearing_adjust % 90 == 0:
+                start_x,start_y = pot_of_gold(cx,cy,crosshair_radius - short_crosshair_length,startBearing + bearing_adjust)
+                line_aliased(start_x, start_y, short_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
+
         
         # bearing not selected
         if self.bearing  == -1:
             # draw diagonals
             for bearing in range(45,359,90):
-                start_x,start_y = pot_of_gold(cx,cy,tiny_offset,bearing)
+                start_x,start_y = pot_of_gold(cx,cy,crosshair_radius,bearing)
                 line_aliased(start_x, start_y, distance, bearing)
             # draw minor spokes
             for bearing in range(0,359,45):
                 if bearing % 90 == 0:
-                    start_x,start_y = pot_of_gold(cx, cy, large_offset, bearing)
-                    line_aliased(start_x, start_y, large_extent, bearing)
+                    start_x,start_y = pot_of_gold(cx, cy, inner_compass_radius - long_compass_mark_length, bearing)
+                    line_aliased(start_x, start_y, long_compass_mark_length, bearing)
             for bearing_x10 in range(0,3590,225):
                 bearing = bearing_x10/10
                 if bearing % 45 != 0:
-                    start_x,start_y = pot_of_gold(cx, cy, small_offset, bearing)
-                    line_aliased(start_x, start_y, small_extent, bearing)
+                    start_x,start_y = pot_of_gold(cx, cy, inner_compass_radius - short_compass_mark_length, bearing)
+                    line_aliased(start_x, start_y, short_compass_mark_length, bearing)
             # draw labels for cardinal directions
             paint.color = 'ffffffff'
             for bearing,label in zip([0,90,180,270],['North','East','South','West']):
-                start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
+                start_x,start_y = pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                 text_aliased(label,start_x,start_y,45)
             paint.color = 'DDDDDDDD'
             for bearing,label in zip([45,135,225,315],['NE', 'SE','SW','NW']):
-                start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
+                start_x,start_y = pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                 text_aliased(label,start_x,start_y,30)
             paint.color = 'BBBBBB99'
             for bearing,label in zip([22.5,67.5,112.5,157.5,202.5,247.5,292.5,337.5],['NNE', 'ENE','ESE','SSE','SSW','WSW','WNW','NNW']):
-                start_x,start_y = pot_of_gold(cx,cy,label_offset,bearing)
+                start_x,start_y = pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                 text_aliased(label,start_x,start_y,18)
                 
         # bearing selected
         else:
             # draw selected bearing line            
-            start_x,start_y = pot_of_gold(cx,cy,5,self.bearing)
+            start_x,start_y = pot_of_gold(cx,cy,10,self.bearing)
             line_thick_aliased(start_x, start_y, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
-            # draw crosshairs
-            for bearing_adjust in [90,180,270]:
-                start_x,start_y = pot_of_gold(cx,cy,5,self.bearing + bearing_adjust)
-                line_aliased(start_x, start_y, 5, self.bearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
                 
-            # draw bearings fifty degrees on either side
+            # draw bearings thirty degrees on either side
             for left_right in [-1,1]:
                 if left_right == -1:
                     cardinal = left_cardinal(self.bearing)
                 else:
                     cardinal = right_cardinal(self.bearing)
-                for bearing_adjust in [10,20,30,40,50]:
+                # draw full spoke every ten degrees
+                for bearing_adjust in [10,20,30]:
                     b = self.bearing + bearing_adjust * left_right
                     start_x,start_y = pot_of_gold(cx,cy,100,b)
                     line_aliased(start_x,start_y,distance,b)
                     text_x,text_y = pot_of_gold(cx,cy,460,b)
                     label = "{}{}".format(str(abs(bearing_adjust)), cardinal)
                     text_aliased(label,text_x,text_y,18)
-                for bearing_adjust in range(50):
+                # draw dial marks at two radii
+                for bearing_adjust in range(30):
                     if bearing_adjust % 10 != 0:
                         b = self.bearing + bearing_adjust * left_right
                         if bearing_adjust % 5 == 0:
