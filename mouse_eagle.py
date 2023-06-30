@@ -16,7 +16,6 @@ class Eagle:
         self.bearing = -1
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
-        self.next_bearing = -1
         
     def enable(self, bearing = -1):
         self.bearing = bearing
@@ -50,7 +49,32 @@ class Eagle:
         self.canvas.close()
         self.canvas = None
 
-
+    def pot_of_gold(self,x,y,distance,bearing):
+        # calculate next position
+        theta = math.radians(bearing)
+        x2,y2 = x + distance * math.sin(theta), y - distance * math.cos(theta)
+        # make sure it is not off the screen
+        # note that the most important equation is :
+        # tan(theta) = -dx/dy
+        if x2 < 0:
+            x2 = 0
+            if bearing == 90 or bearing == 270:
+                y2 = y
+            else:
+                y2 = y - (x2 - x) / math.tan(theta)
+        if x2 > eagle_object.width - 1:
+            x2 = eagle_object.width - 1
+            if bearing == 90 or bearing == 270:
+                y2 = y
+            else:
+                y2 = y - (x2 - x) / math.tan(theta)
+        if y2 < 0:
+            y2 = 0
+            x2 = x - (y2 - y) * math.tan(theta)
+        if y2 > eagle_object.height - 1:
+            y2 = eagle_object.height - 1
+            x2 = x - (y2 - y) * math.tan(theta)            
+        return x2,y2
 
     def toggle(self):
         if self.enabled:
@@ -68,21 +92,19 @@ class Eagle:
 
         cx, cy = self.last_pos
 
-        def pot_of_gold(x,y,distance,bearing):
-            return  x + distance * math.sin(math.radians(bearing)), y - distance * math.cos(math.radians(bearing))
 
         def line_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
             for off, color in ((1, color_alias),(-1, color_alias),(0.5, color_main),(-0.5, color_main),(0, color_main)):
                 paint.color = color
-                start_x,start_y = pot_of_gold(x,y,off,bearing + 90)
-                finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
+                start_x,start_y = self.pot_of_gold(x,y,off,bearing + 90)
+                finish_x,finish_y = self.pot_of_gold(start_x,start_y,distance,bearing)
                 canvas.draw_line(start_x, start_y, finish_x, finish_y)
 
         def line_thick_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
             for off, color in ((1.5, color_alias),(-1.5, color_alias),(1, color_main),(-1, color_main),(0.5, color_main),(-0.5, color_main),(0, color_main)):
                 paint.color = color
-                start_x,start_y = pot_of_gold(x,y,off,bearing + 90)
-                finish_x,finish_y = pot_of_gold(start_x,start_y,distance,bearing)
+                start_x,start_y = self.pot_of_gold(x,y,off,bearing + 90)
+                finish_x,finish_y = self.pot_of_gold(start_x,start_y,distance,bearing)
                 canvas.draw_line(start_x, start_y, finish_x, finish_y)
 
         def text_aliased(label,x,y,font_size):
@@ -145,11 +167,11 @@ class Eagle:
         # draw crosshairs around current mouse position
         startBearing = max(0,self.bearing)
         for bearing_adjust in [0,90,180,270]:
-            start_x,start_y = pot_of_gold(cx,cy,crosshair_radius-long_crosshair_length,startBearing + bearing_adjust)
+            start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius-long_crosshair_length,startBearing + bearing_adjust)
             line_aliased(start_x, start_y, long_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
         for bearing_adjust in range(0,360,10):
             if not bearing_adjust % 90 == 0:
-                start_x,start_y = pot_of_gold(cx,cy,crosshair_radius - short_crosshair_length,startBearing + bearing_adjust)
+                start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius - short_crosshair_length,startBearing + bearing_adjust)
                 line_aliased(start_x, start_y, short_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
 
         
@@ -157,36 +179,36 @@ class Eagle:
         if self.bearing  == -1:
             # draw diagonals
             for bearing in range(45,359,90):
-                start_x,start_y = pot_of_gold(cx,cy,crosshair_radius,bearing)
+                start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius,bearing)
                 line_aliased(start_x, start_y, distance, bearing)
             # draw minor spokes
             for bearing in range(0,359,45):
                 if bearing % 90 == 0:
-                    start_x,start_y = pot_of_gold(cx, cy, inner_compass_radius - long_compass_mark_length, bearing)
+                    start_x,start_y = self.pot_of_gold(cx, cy, inner_compass_radius - long_compass_mark_length, bearing)
                     line_aliased(start_x, start_y, long_compass_mark_length, bearing)
             for bearing_x10 in range(0,3590,225):
                 bearing = bearing_x10/10
                 if bearing % 45 != 0:
-                    start_x,start_y = pot_of_gold(cx, cy, inner_compass_radius - short_compass_mark_length, bearing)
+                    start_x,start_y = self.pot_of_gold(cx, cy, inner_compass_radius - short_compass_mark_length, bearing)
                     line_aliased(start_x, start_y, short_compass_mark_length, bearing)
             # draw labels for cardinal directions
             paint.color = 'ffffffff'
             for bearing,label in zip([0,90,180,270],['North','East','South','West']):
-                start_x,start_y = pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
+                start_x,start_y = self.pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                 text_aliased(label,start_x,start_y,45)
             paint.color = 'DDDDDDDD'
             for bearing,label in zip([45,135,225,315],['NE', 'SE','SW','NW']):
-                start_x,start_y = pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
+                start_x,start_y = self.pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                 text_aliased(label,start_x,start_y,30)
             paint.color = 'BBBBBB99'
             for bearing,label in zip([22.5,67.5,112.5,157.5,202.5,247.5,292.5,337.5],['NNE', 'ENE','ESE','SSE','SSW','WSW','WNW','NNW']):
-                start_x,start_y = pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
+                start_x,start_y = self.pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                 text_aliased(label,start_x,start_y,18)
                 
         # bearing selected
         else:
             # draw selected bearing line            
-            start_x,start_y = pot_of_gold(cx,cy,10,self.bearing)
+            start_x,start_y = self.pot_of_gold(cx,cy,10,self.bearing)
             line_thick_aliased(start_x, start_y, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
                 
             # draw bearings thirty degrees on either side
@@ -198,9 +220,9 @@ class Eagle:
                 # draw full spoke every ten degrees
                 for bearing_adjust in [10,20,30]:
                     b = self.bearing + bearing_adjust * left_right
-                    start_x,start_y = pot_of_gold(cx,cy,100,b)
+                    start_x,start_y = self.pot_of_gold(cx,cy,100,b)
                     line_aliased(start_x,start_y,distance,b)
-                    text_x,text_y = pot_of_gold(cx,cy,460,b)
+                    text_x,text_y = self.pot_of_gold(cx,cy,460,b)
                     label = "{}{}".format(str(abs(bearing_adjust)), cardinal)
                     text_aliased(label,text_x,text_y,18)
                 # draw dial marks at two radii
@@ -212,7 +234,7 @@ class Eagle:
                         else:
                             extra_length = 0
                         for out_distance in [250,550]:
-                            start_x,start_y = pot_of_gold(cx,cy,out_distance - extra_length,b)
+                            start_x,start_y = self.pot_of_gold(cx,cy,out_distance - extra_length,b)
                             line_aliased(start_x,start_y,20 + extra_length * 2,b)
             
             # draw distance hash lines
@@ -221,8 +243,8 @@ class Eagle:
                     for inout in [-1,1]:
                         d = self.distance + spacing * i * inout
                         if d > 0:
-                            x,y = pot_of_gold(cx,cy,d,self.bearing)
-                            sx,sy = pot_of_gold(x,y,size/2,self.bearing - 90)
+                            x,y = self.pot_of_gold(cx,cy,d,self.bearing)
+                            sx,sy = self.pot_of_gold(x,y,size/2,self.bearing - 90)
                             if spacing == 10:
                                 line_aliased(sx,sy,size,self.bearing + 90)
                             else:
@@ -231,9 +253,9 @@ class Eagle:
                             if spacing == 500 or (spacing == 100 and i % 5 != 0):
                                 if 0 < self.bearing < 180:
                                     # draw text to left
-                                    sx,sy = pot_of_gold(sx,sy,5,self.bearing - 90)
+                                    sx,sy = self.pot_of_gold(sx,sy,5,self.bearing - 90)
                                 else:
-                                    sx,sy = pot_of_gold(sx,sy,size + 5,self.bearing-90)
+                                    sx,sy = self.pot_of_gold(sx,sy,size + 5,self.bearing-90)
                                 if spacing == 500:
                                     fs = 27                                
                                 else:
@@ -241,23 +263,18 @@ class Eagle:
                                 text_aliased(str(spacing * i),sx,sy,fs)
         
             # UPDATE MOUSE POSITION        
-            if self.distance > 0:              
-                # UPDATE mouse position
-                x,y = pot_of_gold(cx, cy, self.distance, self.bearing)
-                print("x moving {} from {} to {}".format(self.distance,cx,x))
-                x = max(x,0)
-                x = min(x,self.width-1)
-                y = max(y,0)
-                y = min(y,self.height-1)
-                ctrl.mouse_move(x, y)
-                self.distance = 0
-                self.last_pos = x,y
+            # if self.distance > 0:              
+            #     # UPDATE mouse position
+            #     x,y = self.pot_of_gold(cx, cy, self.distance, self.bearing)
+            #     print("x moving {} from {} to {}".format(self.distance,cx,x))
+            #     x = max(x,0)
+            #     x = min(x,self.width-1)
+            #     y = max(y,0)
+            #     y = min(y,self.height-1)
+            #     ctrl.mouse_move(x, y)
+            #     self.distance = 0
+            #     self.last_pos = x,y
                 
-            # MOVE ON TO NEXT BEARING
-            if self.next_bearing != -1:
-                dummy = self.next_bearing
-                self.next_bearing = -1
-                self.bearing = dummy
                             
     def on_mouse(self, event):
         # self.check_mouse()
@@ -375,17 +392,25 @@ class Actions:
     def fly_out(distance: int):
         """move out the specified number of pixels"""
         eagle_object.distance = eagle_object.distance + distance
+        cx,cy = eagle_object.last_pos        
+        x,y = eagle_object.pot_of_gold(cx, cy, distance, eagle_object.bearing)
+        ctrl.mouse_move(x, y)
+        eagle_object.distance = 0
+        eagle_object.last_pos = x,y
+
         
         print("function move_out")
         print("distance: {}".format(eagle_object.distance))
 
     def fly_back(distance: int):
         """turn around and move back the specified number of pixels"""
-        print("I'm here...")
-        eagle_object.next_bearing = eagle_object.bearing
-        eagle_object.bearing = (eagle_object.bearing + 180) % 360
-        eagle_object.distance = eagle_object.distance + distance
-
+        cx,cy = eagle_object.last_pos        
+        reverse_bearing = (eagle_object.bearing + 180) % 360
+        x,y = eagle_object.pot_of_gold(cx, cy, distance, reverse_bearing)
+        ctrl.mouse_move(x, y)
+        eagle_object.distance = 0
+        eagle_object.last_pos = x,y
+        
 
 
     def test(d1: float):
