@@ -19,3 +19,7 @@ tag: user.eagle_showing
 # for example 'fly five hundred'
 fly <number>:
 	user.fly_out(number_1)
+
+# move backwards specified distance in pixels
+(reverse|back|backup) <number>:
+	user.fly_back(number_1)

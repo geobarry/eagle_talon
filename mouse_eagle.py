@@ -16,6 +16,7 @@ class Eagle:
         self.bearing = -1
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
+        self.next_bearing = -1
         
     def enable(self, bearing = -1):
         self.bearing = bearing
@@ -139,6 +140,8 @@ class Eagle:
         long_compass_mark_length = 100
         label_offset = 25
 
+        # DRAW GRID
+
         # draw crosshairs around current mouse position
         startBearing = max(0,self.bearing)
         for bearing_adjust in [0,90,180,270]:
@@ -236,7 +239,8 @@ class Eagle:
                                 else:
                                     fs = 18
                                 text_aliased(str(spacing * i),sx,sy,fs)
-            
+        
+            # UPDATE MOUSE POSITION        
             if self.distance > 0:              
                 # UPDATE mouse position
                 x,y = pot_of_gold(cx, cy, self.distance, self.bearing)
@@ -248,6 +252,12 @@ class Eagle:
                 ctrl.mouse_move(x, y)
                 self.distance = 0
                 self.last_pos = x,y
+                
+            # MOVE ON TO NEXT BEARING
+            if self.next_bearing != -1:
+                dummy = self.next_bearing
+                self.next_bearing = -1
+                self.bearing = dummy
                             
     def on_mouse(self, event):
         # self.check_mouse()
@@ -368,6 +378,15 @@ class Actions:
         
         print("function move_out")
         print("distance: {}".format(eagle_object.distance))
+
+    def fly_back(distance: int):
+        """turn around and move back the specified number of pixels"""
+        print("I'm here...")
+        eagle_object.next_bearing = eagle_object.bearing
+        eagle_object.bearing = (eagle_object.bearing + 180) % 360
+        eagle_object.distance = eagle_object.distance + distance
+
+
 
     def test(d1: float):
         """test function"""
