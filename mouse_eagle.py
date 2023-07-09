@@ -76,6 +76,30 @@ class Eagle:
             x2 = x - (y2 - y) * math.tan(theta)            
         return x2,y2
 
+    def distance_to_edge(self,x,y,bearing):
+        # calculate distance to edge in pixels
+        # get math shortcuts
+        theta = math.radians(bearing)
+        cosine_theta = math.cos(theta)
+        sin_theta = math.sin(theta)
+        h = eagle_object.height
+        w = eagle_object.width
+        # get distances in vertical and horizontal directions
+        if cosine_theta > 0:
+            vertical_distance = y/cosine_theta
+        elif cosine_theta < 0:
+            vertical_distance = (y-h)/cosine_theta
+        else:
+            vertical_distance = 9000000
+        if sin_theta > 0:
+            horizontal_distance = (w-x)/sin_theta
+        elif sin_theta < 0:
+            horizontal_distance = -x/sin_theta
+        else:
+            horizontal_distance = 9000000
+        # distances minimum of vertical and horizontal distances
+        return min(vertical_distance,horizontal_distance)
+
     def toggle(self):
         if self.enabled:
             self.disable()
@@ -162,6 +186,8 @@ class Eagle:
         long_compass_mark_length = 100
         label_offset = 25
 
+        max_distance = self.distance_to_edge(cx,cy,self.bearing)
+
         # DRAW GRID
 
         # draw crosshairs around current mouse position
@@ -233,16 +259,17 @@ class Eagle:
                             extra_length = 7
                         else:
                             extra_length = 0
-                        for out_distance in [250,550]:
+                        dial_radius = [int(max_distance * x) for x in [0.2,0.5,0.8]]
+                        for out_distance in dial_radius:
                             start_x,start_y = self.pot_of_gold(cx,cy,out_distance - extra_length,b)
                             line_aliased(start_x,start_y,20 + extra_length * 2,b)
             
             # draw distance hash lines
-            for spacing, size in [(100,27),(50,18),(10,12),(500,48)]:
+            for spacing, size in [(500,60),(100,39),(50,21),(10,12)]:
                 for i in range(int(self.max_distance/spacing) + 1):
                     for inout in [-1,1]:
                         d = self.distance + spacing * i * inout
-                        if d > 0:
+                        if d > 0 and d < max_distance:
                             x,y = self.pot_of_gold(cx,cy,d,self.bearing)
                             sx,sy = self.pot_of_gold(x,y,size/2,self.bearing - 90)
                             if spacing == 10:
@@ -262,19 +289,6 @@ class Eagle:
                                     fs = 18
                                 text_aliased(str(spacing * i),sx,sy,fs)
         
-            # UPDATE MOUSE POSITION        
-            # if self.distance > 0:              
-            #     # UPDATE mouse position
-            #     x,y = self.pot_of_gold(cx, cy, self.distance, self.bearing)
-            #     print("x moving {} from {} to {}".format(self.distance,cx,x))
-            #     x = max(x,0)
-            #     x = min(x,self.width-1)
-            #     y = max(y,0)
-            #     y = min(y,self.height-1)
-            #     ctrl.mouse_move(x, y)
-            #     self.distance = 0
-            #     self.last_pos = x,y
-                
                             
     def on_mouse(self, event):
         # self.check_mouse()
@@ -337,7 +351,7 @@ def bearing_capture(m) -> float:
         
 @mod.action_class
 class Actions:
-    def Eagle_enable():
+    def eagle_enable():
         """Enable relative mouse guide"""
         eagle_object.enable()
         ctx.tags = ["user.eagle_showing"]
@@ -347,12 +361,12 @@ class Actions:
         eagle_object.enable(bearing)
         ctx.tags = ["user.eagle_showing"]
         
-    def Eagle_disable():
+    def eagle_disable():
         """Disable relative mouse guide"""
         eagle_object.disable()
         ctx.tags = []
         
-    def Eagle_toggle():
+    def eagle_toggle():
         """Toggle relative mouse guide"""
         eagle_object.toggle()
 
@@ -402,6 +416,11 @@ class Actions:
         print("function move_out")
         print("distance: {}".format(eagle_object.distance))
 
+    def reverse():
+        """reverse direction"""
+        print("reverse function")
+        eagle_object.bearing = (eagle_object.bearing + 180) % 360        
+
     def fly_back(distance: int):
         """turn around and move back the specified number of pixels"""
         cx,cy = eagle_object.last_pos        
@@ -411,7 +430,13 @@ class Actions:
         eagle_object.distance = 0
         eagle_object.last_pos = x,y
         
-
+    def center_eagle():
+        """move mouse to center of screen"""
+        x,y = int(eagle_object.width/2), int(eagle_object.height/2)
+        ctrl.mouse_move(x,y)
+        eagle_object.last_pos = x,y
+        eagle_object.enable()
+        print(eagle_object)
 
     def test(d1: float):
         """test function"""

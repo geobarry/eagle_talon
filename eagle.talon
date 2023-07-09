@@ -1,6 +1,8 @@
 eagle [(on|mouse)]:
-    user.Eagle_enable()
+    user.eagle_enable()
 (eagle off|eagle laugh|eagle out|grid off):
-	user.Eagle_disable()
+	user.eagle_disable()
 eagle <user.bearing_capture>:
 	user.eagle_head_start(user.bearing_capture)
+eagle center:
+	user.center_eagle()

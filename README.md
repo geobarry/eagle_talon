@@ -30,8 +30,10 @@ That's really all you need to get started. Details on individual commands provid
 
 # Commands
 ``` Eagle On ```  
-  * starts Eagle  
-  * shows a compass rose  
+  * starts Eagle from the current mouse position 
+
+``` Eagle Center ```
+  * starts Eagle from the center of the screen
 
 ``` <compass direction> ```  
   * set Eagle's bearing to the given compass direction  
@@ -49,8 +51,11 @@ That's really all you need to get started. Details on individual commands provid
   * moves the mouse the specified distance in pixels in the direction of Eagle's current bearing
   * Pro tip: When trying to click on something all the way across the screen, it may be difficult to get the bearing angle to land on exactly where you want to go. In this case, a good strategy is to bring the mouse close to but not quite all the way to your desired destination, then adjust the bearing a little bit and repeat. For example, if you want to hit a target that is 1000 pixels away to the upper right, you could say ```Eagle Northeast``` ```Fly 950``` to get into the general vicinity, then adjust the bearing more precisely for the final 50 pixels.   
 
-``` (Reverse|Back|Backup) <number> ```
+``` (Back|Backup) <number> ```
   * moves the mouse backwards the specified distance in pixels
+
+``` Reverse ```
+  * reverses the compass direction
 
 ``` Eagle Off ```  
   * closes Eagle and hides the navigation grid or compass rose

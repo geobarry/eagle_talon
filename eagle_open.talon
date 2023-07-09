@@ -1,10 +1,5 @@
 tag: user.eagle_showing
 -
-# state base direction
-# for example: "north"
-#{user.compass_cardinal}:
- #   user.set_cardinal(compass_cardinal_1)
-
 # a set the bearing direction to a cardinal direction
 # for example 'north'
 <user.bearing_capture>:
@@ -21,5 +16,9 @@ fly <number>:
 	user.fly_out(number_1)
 
 # move backwards specified distance in pixels
-(reverse|back|backup) <number>:
+(back|backup) <number>:
 	user.fly_back(number_1)
+	
+# reverse direction
+reverse:
+	user.reverse()
