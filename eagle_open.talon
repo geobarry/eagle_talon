@@ -1,5 +1,9 @@
 tag: user.eagle_showing
 -
+# SHUT DOWN EAGLE
+(eagle off|eagle laugh|eagle out|grid off):
+	user.eagle_disable()
+
 # a set the bearing direction to a cardinal direction
 # for example 'north'
 <user.bearing_capture>:

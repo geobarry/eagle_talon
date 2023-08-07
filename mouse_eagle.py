@@ -1,8 +1,6 @@
 # module to control mouse using directions and distances
 from typing import Tuple
-
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui
-
 import math, time
 
 class Eagle:
@@ -23,24 +21,16 @@ class Eagle:
             return
         self.enabled = True
         self.last_pos = ctrl.mouse_pos()        
-        
-        print("position: {}".format(self.last_pos))
-        
         screen = ui.main_screen()
         self.width, self.height = screen.width, screen.height
         self.canvas = canvas.Canvas.from_screen(screen)#  canvas.Canvas(0, 0, self.width, self.height)
-
+        self.check_mouse()
         self.canvas.register('mousemove', self.on_mouse)
         self.canvas.register('draw', self.draw_canvas) 
-        # self.canvas.freeze() # uncomment this line for debugging
-        print("eagle on...")
-        print("Eagle position: {}".format(self.last_pos))
-        # uncomment this if the mouse movement event isn't working
-        #self.job = cron.interval('16ms', self.check_mouse)
+        self.canvas.freeze() # uncomment this line for debugging
 
-        print("self.canvas.rect.width: {}".format(self.canvas.rect.width))
-        print("self.canvas.rect.height: {}".format(self.canvas.rect.height))
-
+        self.job = cron.interval('16ms', self.check_mouse)
+        
     def disable(self):
         if not self.enabled:
             return
@@ -150,7 +140,6 @@ class Eagle:
                 canvas.draw_text(label,x+1,y-1)
 
         def left_cardinal(bearing):
-            print(bearing)
             if 45 < bearing <= 135:
                 return 'N'
             elif 135 <= bearing <= 225:
@@ -291,15 +280,15 @@ class Eagle:
         
                             
     def on_mouse(self, event):
-        # self.check_mouse()
-        pass
+        self.check_mouse()
 
     def check_mouse(self):
         pos = ctrl.mouse_pos()
         if pos != self.last_pos:
             x, y = pos
-            self.canvas.move(x - self.width // 2, y - self.height // 2)
             self.last_pos = pos
+            self.canvas.move(0,0) # this forces canvas redraw
+            
 
 eagle_object = Eagle(5000, 5000)
 # eagle_object.enable()
@@ -330,7 +319,6 @@ def parse_cardinal(direction: str, distance: int) -> Tuple[bool, int]:
 @mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)] | up | down | right | left)")
 def bearing_capture(m) -> float:
     """determines bearing from spoken compass direction"""
-    print('bearing capture, input: {} | length: {}'.format(m,len(m)))
     def bearing_average(b1,b2):
         difference = ((b2 - b1 + 180) % 360) - 180
         return b1 + difference/2
@@ -346,19 +334,25 @@ def bearing_capture(m) -> float:
             bearing = bearing_lookup[m[w]]
         else:
             bearing = bearing_average(bearing, bearing_lookup[m[w]])
-    print("result: {}".format(bearing))
     return bearing
+
+def update_canvas():
+    bearing = eagle_object.bearing
+    eagle_object.disable()
+    eagle_object.enable(bearing)
         
 @mod.action_class
 class Actions:
     def eagle_enable():
         """Enable relative mouse guide"""
         eagle_object.enable()
+        update_canvas()
         ctx.tags = ["user.eagle_showing"]
 
     def eagle_head_start(bearing: float):
         """enable relative mouse guide and point to given bearing direction"""
         eagle_object.enable(bearing)
+        update_canvas()
         ctx.tags = ["user.eagle_showing"]
         
     def eagle_disable():
@@ -373,35 +367,24 @@ class Actions:
     def set_cardinal(target: float):
         """set the bearing to a cardinal direction"""
         eagle_object.bearing = target
-        print('bearing {}'.format(eagle_object.bearing))
+        update_canvas()
 
     def move_cardinal(move_degrees: int, target: float):
         """move the bearing direction a certain number of degrees towards a cardinal direction"""
-        print('new move cardinal function')
-        print("input move_degrees: {}".format(move_degrees))
-        print("target: {}".format(target))
-
         # determine difference between current bearing and target bearing
         delta = (((target - eagle_object.bearing) + 180) % 360) - 180
         
-        print("delta: {}".format(delta))
-
         # limit movement to ensure we don't go past the target direction
         if move_degrees > abs(delta):
             move_degrees = abs(delta)
-
-        print("move_degrees: {}".format(move_degrees))
 
         # adjust sign of movement if necessary
         if delta < 0:
             move_degrees = -move_degrees
             
-        print("move_degrees: {}".format(move_degrees))
-            
         # perform movement!
         eagle_object.bearing = (eagle_object.bearing + move_degrees) % 360
-
-        print("result: {}".format(eagle_object.bearing))
+        update_canvas()
 
     def fly_out(distance: int):
         """move out the specified number of pixels"""
@@ -411,15 +394,12 @@ class Actions:
         ctrl.mouse_move(x, y)
         eagle_object.distance = 0
         eagle_object.last_pos = x,y
-
-        
-        print("function move_out")
-        print("distance: {}".format(eagle_object.distance))
+        update_canvas()
 
     def reverse():
         """reverse direction"""
-        print("reverse function")
         eagle_object.bearing = (eagle_object.bearing + 180) % 360        
+        update_canvas()
 
     def fly_back(distance: int):
         """turn around and move back the specified number of pixels"""
@@ -429,14 +409,14 @@ class Actions:
         ctrl.mouse_move(x, y)
         eagle_object.distance = 0
         eagle_object.last_pos = x,y
+        update_canvas()
         
     def center_eagle():
         """move mouse to center of screen"""
         x,y = int(eagle_object.width/2), int(eagle_object.height/2)
         ctrl.mouse_move(x,y)
         eagle_object.last_pos = x,y
-        eagle_object.enable()
-        print(eagle_object)
+        update_canvas()
 
     def test(d1: float):
         """test function"""
