@@ -1,6 +1,6 @@
 tag: user.eagle_showing
 -
-# SHUT DOWN EAGLE
+# SHUT DOWN EAGLEr
 (eagle off|eagle laugh|eagle out|grid off):
 	user.eagle_disable()
 
@@ -26,3 +26,7 @@ fly <number>:
 # reverse direction
 reverse:
 	user.reverse()
+	
+# change display mode
+eagle {user.eagle_display_mode}:
+	user.display_mode(user.eagle_display_mode)
