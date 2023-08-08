@@ -178,10 +178,9 @@ class Eagle:
         max_distance = self.distance_to_edge(cx,cy,self.bearing)
 
         # DRAW GRID
-
+        startBearing = max(0,self.bearing)
         if mode_label[self.mode] in ['heavy','medium','light','tiny']:
             # draw circular crosshairs around current mouse position
-            startBearing = max(0,self.bearing)
             for bearing_adjust in [0,90,180,270]:
                 start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius-long_crosshair_length,startBearing + bearing_adjust)
                 line_aliased(start_x, start_y, long_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
@@ -190,6 +189,14 @@ class Eagle:
                     start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius - short_crosshair_length,startBearing + bearing_adjust)
                     line_aliased(start_x, start_y, short_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
 
+        if mode_label[self.mode] in ['tiny']: 
+            # draw an extra little arrow for tiny display
+            start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius,startBearing)
+            line_aliased(start_x, start_y, crosshair_radius * 0.5, startBearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
+            start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius * 1.5, startBearing)
+            line_aliased(start_x, start_y, crosshair_radius * 0.25, startBearing + 135, color_main = 'ff9999ff', color_alias = 'ffffff99')
+            line_aliased(start_x, start_y, crosshair_radius * 0.25, startBearing - 135, color_main = 'ff9999ff', color_alias = 'ffffff99')
+            
         
         # bearing not selected
         if self.bearing  == -1:
@@ -227,7 +234,7 @@ class Eagle:
                     text_aliased(label,start_x,start_y,18)
                     
         # bearing selected
-        else:
+        if self.bearing  != -1:
             if mode_label[self.mode] in ['heavy','medium','light']:
                 # draw selected bearing line            
                 start_x,start_y = self.pot_of_gold(cx,cy,10,self.bearing)
@@ -243,25 +250,37 @@ class Eagle:
                     # draw full spoke every ten degrees
                     for bearing_adjust in [10,20,30]:
                         b = self.bearing + bearing_adjust * left_right
-                        start_x,start_y = self.pot_of_gold(cx,cy,100,b)
+                        start_distance = min(100,max_distance * 0.5)
+                        start_x,start_y = self.pot_of_gold(cx,cy,start_distance,b)
                         line_aliased(start_x,start_y,distance,b)
                         text_x,text_y = self.pot_of_gold(cx,cy,460,b)
                         label = "{}{}".format(str(abs(bearing_adjust)), cardinal)
                         text_aliased(label,text_x,text_y,18)
                 if mode_label[self.mode] in ['heavy','medium']:
-                    # draw dial marks at two radii
-                    for bearing_adjust in range(30):
-                        if bearing_adjust % 10 != 0:
-                            b = self.bearing + bearing_adjust * left_right
-                            if bearing_adjust % 5 == 0:
-                                extra_length = 7
-                            else:
-                                extra_length = 0
-                            dial_radius = [int(max_distance * x) for x in [0.2,0.5,0.8]]
-                            for out_distance in dial_radius:
-                                start_x,start_y = self.pot_of_gold(cx,cy,out_distance - extra_length,b)
-                                line_aliased(start_x,start_y,20 + extra_length * 2,b)
-                
+                    # determine radii
+                    hash_length = 20
+                    radii = []
+                    minimum_interval_ratio = 10
+                    if max_distance > minimum_interval_ratio * hash_length:
+                        radii = [0.6]
+                    if mode_label[self.mode] == 'heavy':
+                        if max_distance > 3 * minimum_interval_ratio * hash_length:
+                            radii = [0.2,0.5,0.8]
+                        elif max_distance > 2 * minimum_interval_ratio * hash_length:
+                            radii = [0.35,0.75]
+                    # draw dial marks at radii
+                    for bearing_adjust in range(31):
+                        # if bearing_adjust % 10 != 0:
+                        b = self.bearing + bearing_adjust * left_right
+                        if bearing_adjust % 5 == 0:
+                            extra_length = 7
+                        else:
+                            extra_length = 0
+                        dial_radius = [int(max_distance * x) for x in radii]
+                        for out_distance in dial_radius:
+                            start_x,start_y = self.pot_of_gold(cx,cy,out_distance - extra_length,b)
+                            line_aliased(start_x,start_y, hash_length + extra_length * 2,b)
+            
             # draw distance hash lines
             spacings = []
             label_spacings = []
@@ -315,7 +334,6 @@ eagle_object = Eagle(5000, 5000)
 # eagle_object.enable()
 
 mod = Module()
-# mod.list('compass_cardinal', desc='compass cardinal directions for relative mouse movement')
 mod.list('eagle_display_mode', desc = 'amount of information displayed in compass grid')
 mod.tag("eagle_showing", desc="Tag indicates whether the eagle compass is showing")
 
@@ -429,8 +447,6 @@ class Actions:
     def test(d1: float):
         """test function"""
         x = 3
-
-        
 
 ctx = Context()
 ctx.lists['user.eagle_display_mode'] = ['heavy','medium','light','tiny']# eagle_display_mode.keys()

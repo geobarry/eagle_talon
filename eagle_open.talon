@@ -28,5 +28,5 @@ reverse:
 	user.reverse()
 	
 # change display mode
-eagle {user.eagle_display_mode}:
+eagle display {user.eagle_display_mode}:
 	user.display_mode(user.eagle_display_mode)
