@@ -16,7 +16,7 @@ class Eagle:
         self.bearing = -1
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
-        self.mode = 4
+        self.mode = 3
         
     def enable(self, bearing = -1):
         self.bearing = bearing
@@ -166,6 +166,7 @@ class Eagle:
         # get spoke parameters
         distance = 5000
         crosshair_radius = 30
+        
         long_crosshair_length = 12
         short_crosshair_length = 5
 
@@ -234,63 +235,21 @@ class Eagle:
                     text_aliased(label,start_x,start_y,18)
                     
         # bearing selected
-        if self.bearing  != -1:
-            if mode_label[self.mode] in ['heavy','medium','light']:
-                # draw selected bearing line            
-                start_x,start_y = self.pot_of_gold(cx,cy,10,self.bearing)
-                line_thick_aliased(start_x, start_y, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
-            
-            # draw adjacent bearings thirty degrees on either side
-            for left_right in [-1,1]:
-                if left_right == -1:
-                    cardinal = left_cardinal(self.bearing)
-                else:
-                    cardinal = right_cardinal(self.bearing)
-                if mode_label[self.mode] in ['heavy']:
-                    # draw full spoke every ten degrees
-                    for bearing_adjust in [10,20,30]:
-                        b = self.bearing + bearing_adjust * left_right
-                        start_distance = min(100,max_distance * 0.5)
-                        start_x,start_y = self.pot_of_gold(cx,cy,start_distance,b)
-                        line_aliased(start_x,start_y,distance,b)
-                        text_x,text_y = self.pot_of_gold(cx,cy,460,b)
-                        label = "{}{}".format(str(abs(bearing_adjust)), cardinal)
-                        text_aliased(label,text_x,text_y,18)
-                if mode_label[self.mode] in ['heavy','medium']:
-                    # determine radii
-                    hash_length = 20
-                    radii = []
-                    minimum_interval_ratio = 10
-                    if max_distance > minimum_interval_ratio * hash_length:
-                        radii = [0.6]
-                    if mode_label[self.mode] == 'heavy':
-                        if max_distance > 3 * minimum_interval_ratio * hash_length:
-                            radii = [0.2,0.5,0.8]
-                        elif max_distance > 2 * minimum_interval_ratio * hash_length:
-                            radii = [0.35,0.75]
-                    # draw dial marks at radii
-                    for bearing_adjust in range(31):
-                        # if bearing_adjust % 10 != 0:
-                        b = self.bearing + bearing_adjust * left_right
-                        if bearing_adjust % 5 == 0:
-                            extra_length = 7
-                        else:
-                            extra_length = 0
-                        dial_radius = [int(max_distance * x) for x in radii]
-                        for out_distance in dial_radius:
-                            start_x,start_y = self.pot_of_gold(cx,cy,out_distance - extra_length,b)
-                            line_aliased(start_x,start_y, hash_length + extra_length * 2,b)
-            
+        if self.bearing  != -1:            
             # draw distance hash lines
             spacings = []
             label_spacings = []
             if mode_label[self.mode] in ['heavy','medium','light']:
                 spacings += [500,100]
-                label_spacings += [500]
                 if mode_label[self.mode] in ['heavy','medium']:
                     spacings += [50,10]
                     label_spacings += [100]
+            
             spacing_sizes = {500:60,100:39,50:21,10:12}
+            if mode_label[self.mode] == 'medium':
+                spacing_sizes = {500:60,100:25,50:11,10:3}    
+            if mode_label[self.mode] == 'light':
+                spacing_sizes = {500:60,100:5,50:3,10:2}    
             for j in range(len(spacings)):
                 spacing = spacings[j]
                 size = spacing_sizes[spacing]
@@ -306,6 +265,12 @@ class Eagle:
                                     line_aliased(sx,sy,size,self.bearing + 90)
                                 else:
                                     line_thick_aliased(sx,sy,size,self.bearing + 90)
+                                # draw crosshairs for display light mode
+                                if mode_label[self.mode] == 'light':
+                                    sx,sy = self.pot_of_gold(x,y,size/2,self.bearing - 180)
+                                    if spacing == 500:
+                                        line_aliased(sx,sy,size,self.bearing)
+
                                 # draw labels for big lines
                                 if spacing in label_spacings:
                                     if 0 < self.bearing < 180: # draw text to left
@@ -317,8 +282,58 @@ class Eagle:
                                     else:
                                         fs = 18
                                     text_aliased(str(spacing * i),sx,sy,fs)
+            if mode_label[self.mode] in ['heavy']:
+                # draw selected bearing line            
+                start_x,start_y = self.pot_of_gold(cx,cy,10,self.bearing)
+                line_thick_aliased(start_x, start_y, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
             
-                                
+            # draw adjacent bearings thirty degrees on either side
+            for left_right in [-1,1]:
+                if left_right == -1:
+                    cardinal = left_cardinal(self.bearing)
+                else:
+                    cardinal = right_cardinal(self.bearing)
+                if mode_label[self.mode] in ['heavy','medium']:
+                    # draw full spoke every ten degrees
+                    for bearing_adjust in [10,20,30]:
+                        b = self.bearing + bearing_adjust * left_right
+                        start_distance = min(100,max_distance * 0.5)
+                        start_x,start_y = self.pot_of_gold(cx,cy,start_distance,b)
+                        if mode_label[self.mode] in ['heavy']:
+                            line_aliased(start_x,start_y,distance,b)
+                        
+                if mode_label[self.mode] in ['heavy','medium']:
+                    # determine radii
+                    hash_length = spacing_sizes[500]
+                    radii = []
+                    minimum_interval_ratio = 10
+                    if max_distance > minimum_interval_ratio * hash_length:
+                        radii = [0.6]
+                    if mode_label[self.mode] == 'heavy':
+                        if max_distance > 3 * minimum_interval_ratio * hash_length:
+                            radii = [0.2,0.5,0.8]
+                        elif max_distance > 2 * minimum_interval_ratio * hash_length:
+                            radii = [0.35,0.75]
+                    # draw dial marks at radii
+                    for bearing_adjust in range(31):
+                        if bearing_adjust % 10 == 0:
+                            hash_length = spacing_sizes[500]/2
+                        elif bearing_adjust % 5 == 0:
+                            hash_length = spacing_sizes[100]/2    
+                        else:
+                            hash_length = spacing_sizes[50]/2    
+                        b = self.bearing + bearing_adjust * left_right
+                        dial_radius = [int(max_distance * x) for x in radii]
+                        for out_distance in dial_radius:
+                            start_x,start_y = self.pot_of_gold(cx,cy,out_distance - hash_length/2,b)
+                            line_aliased(start_x,start_y, hash_length,b)
+                            # label spokes every ten degrees
+                            if bearing_adjust % 10 == 0:
+                                buffer = 10
+                                text_x,text_y = self.pot_of_gold(start_x,start_y,buffer+hash_length,b)
+                                label = "{}{}".format(str(abs(bearing_adjust)), cardinal)
+                                text_aliased(label,text_x,text_y,18)
+                                    
     def on_mouse(self, event):
         self.check_mouse()
 
