@@ -3,7 +3,12 @@ from typing import Tuple
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui
 import math, time
 mode_label = {1:'tiny',2:'light',3:'medium',4:'heavy'}
-eagle_display_mode = {'heavy':4,'medium':3,'light':2,'tiny':1}
+eagle_display_modes = {'heavy':4,'medium':3,'light':2,'tiny':1}
+active_display_mode = 3
+resting_display_mode = 1
+update_interval = 16
+fade_time = 10000 # ten seconds
+
 
 class Eagle:
     def __init__(self, width: float, height: float):
@@ -16,7 +21,8 @@ class Eagle:
         self.bearing = -1
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
-        self.mode = 3
+        self.display_mode = active_display_mode
+        self.ms_since_last_action = 0
         
     def enable(self, bearing = -1):
         self.bearing = bearing
@@ -27,12 +33,11 @@ class Eagle:
         screen = ui.main_screen()
         self.width, self.height = screen.width, screen.height
         self.canvas = canvas.Canvas.from_screen(screen)#  canvas.Canvas(0, 0, self.width, self.height)
-        self.check_mouse()
+        self.check_for_updates()
         self.canvas.register('mousemove', self.on_mouse)
         self.canvas.register('draw', self.draw_canvas) 
         self.canvas.freeze() # uncomment this line for debugging
-
-        self.job = cron.interval('16ms', self.check_mouse)
+        self.job = cron.interval('{}ms'.format(update_interval), self.check_for_updates)
         
     def disable(self):
         if not self.enabled:
@@ -180,7 +185,7 @@ class Eagle:
 
         # DRAW GRID
         startBearing = max(0,self.bearing)
-        if mode_label[self.mode] in ['heavy','medium','light','tiny']:
+        if mode_label[self.display_mode] in ['heavy','medium','light','tiny']:
             # draw circular crosshairs around current mouse position
             for bearing_adjust in [0,90,180,270]:
                 start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius-long_crosshair_length,startBearing + bearing_adjust)
@@ -190,7 +195,7 @@ class Eagle:
                     start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius - short_crosshair_length,startBearing + bearing_adjust)
                     line_aliased(start_x, start_y, short_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
 
-        if mode_label[self.mode] in ['tiny']: 
+        if mode_label[self.display_mode] in ['tiny']: 
             # draw an extra little arrow for tiny display
             start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius,startBearing)
             line_aliased(start_x, start_y, crosshair_radius * 0.5, startBearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
@@ -201,7 +206,7 @@ class Eagle:
         
         # bearing not selected
         if self.bearing  == -1:
-            if mode_label[self.mode] in ['heavy','medium','light']:
+            if mode_label[self.display_mode] in ['heavy','medium','light']:
                 # draw cardinal directions and diagonals
                 for bearing in range(45,359,90):
                     start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius,bearing)
@@ -210,25 +215,25 @@ class Eagle:
                     if bearing % 90 == 0:
                         start_x,start_y = self.pot_of_gold(cx, cy, inner_compass_radius - long_compass_mark_length, bearing)
                         line_aliased(start_x, start_y, long_compass_mark_length, bearing)
-            if mode_label[self.mode] in ['heavy','medium']:
+            if mode_label[self.display_mode] in ['heavy','medium']:
                 # draw minor spokes
                 for bearing_x10 in range(0,3590,225):
                     bearing = bearing_x10/10
                     if bearing % 45 != 0:
                         start_x,start_y = self.pot_of_gold(cx, cy, inner_compass_radius - short_compass_mark_length, bearing)
                         line_aliased(start_x, start_y, short_compass_mark_length, bearing)
-            if mode_label[self.mode] in ['heavy','medium','light']:
+            if mode_label[self.display_mode] in ['heavy','medium','light']:
                 # draw labels for cardinal directions
                 paint.color = 'ffffffff'
                 for bearing,label in zip([0,90,180,270],['North','East','South','West']):
                     start_x,start_y = self.pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                     text_aliased(label,start_x,start_y,45)
-            if mode_label[self.mode] in ['heavy','medium']:
+            if mode_label[self.display_mode] in ['heavy','medium']:
                 paint.color = 'DDDDDDDD'
                 for bearing,label in zip([45,135,225,315],['NE', 'SE','SW','NW']):
                     start_x,start_y = self.pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
                     text_aliased(label,start_x,start_y,30)
-            if mode_label[self.mode] in 'heavy':
+            if mode_label[self.display_mode] in 'heavy':
                 paint.color = 'BBBBBB99'
                 for bearing,label in zip([22.5,67.5,112.5,157.5,202.5,247.5,292.5,337.5],['NNE', 'ENE','ESE','SSE','SSW','WSW','WNW','NNW']):
                     start_x,start_y = self.pot_of_gold(cx,cy,inner_compass_radius + label_offset,bearing)
@@ -239,16 +244,16 @@ class Eagle:
             # draw distance hash lines
             spacings = []
             label_spacings = []
-            if mode_label[self.mode] in ['heavy','medium','light']:
+            if mode_label[self.display_mode] in ['heavy','medium','light']:
                 spacings += [500,100]
-                if mode_label[self.mode] in ['heavy','medium']:
+                if mode_label[self.display_mode] in ['heavy','medium']:
                     spacings += [50,10]
                     label_spacings += [100]
             
             spacing_sizes = {500:60,100:39,50:21,10:12}
-            if mode_label[self.mode] == 'medium':
+            if mode_label[self.display_mode] == 'medium':
                 spacing_sizes = {500:60,100:25,50:11,10:3}    
-            if mode_label[self.mode] == 'light':
+            if mode_label[self.display_mode] == 'light':
                 spacing_sizes = {500:60,100:5,50:3,10:2}    
             for j in range(len(spacings)):
                 spacing = spacings[j]
@@ -266,7 +271,7 @@ class Eagle:
                                 else:
                                     line_thick_aliased(sx,sy,size,self.bearing + 90)
                                 # draw crosshairs for display light mode
-                                if mode_label[self.mode] == 'light':
+                                if mode_label[self.display_mode] == 'light':
                                     sx,sy = self.pot_of_gold(x,y,size/2,self.bearing - 180)
                                     if spacing == 500:
                                         line_aliased(sx,sy,size,self.bearing)
@@ -282,7 +287,7 @@ class Eagle:
                                     else:
                                         fs = 18
                                     text_aliased(str(spacing * i),sx,sy,fs)
-            if mode_label[self.mode] in ['heavy']:
+            if mode_label[self.display_mode] in ['heavy']:
                 # draw selected bearing line            
                 start_x,start_y = self.pot_of_gold(cx,cy,10,self.bearing)
                 line_thick_aliased(start_x, start_y, distance, self.bearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
@@ -293,23 +298,23 @@ class Eagle:
                     cardinal = left_cardinal(self.bearing)
                 else:
                     cardinal = right_cardinal(self.bearing)
-                if mode_label[self.mode] in ['heavy','medium']:
+                if mode_label[self.display_mode] in ['heavy','medium']:
                     # draw full spoke every ten degrees
                     for bearing_adjust in [10,20,30]:
                         b = self.bearing + bearing_adjust * left_right
                         start_distance = min(100,max_distance * 0.5)
                         start_x,start_y = self.pot_of_gold(cx,cy,start_distance,b)
-                        if mode_label[self.mode] in ['heavy']:
+                        if mode_label[self.display_mode] in ['heavy']:
                             line_aliased(start_x,start_y,distance,b)
                         
-                if mode_label[self.mode] in ['heavy','medium']:
+                if mode_label[self.display_mode] in ['heavy','medium']:
                     # determine radii
                     hash_length = spacing_sizes[500]
                     radii = []
                     minimum_interval_ratio = 10
                     if max_distance > minimum_interval_ratio * hash_length:
                         radii = [0.6]
-                    if mode_label[self.mode] == 'heavy':
+                    if mode_label[self.display_mode] == 'heavy':
                         if max_distance > 3 * minimum_interval_ratio * hash_length:
                             radii = [0.2,0.5,0.8]
                         elif max_distance > 2 * minimum_interval_ratio * hash_length:
@@ -335,13 +340,24 @@ class Eagle:
                                 text_aliased(label,text_x,text_y,18)
                                     
     def on_mouse(self, event):
-        self.check_mouse()
+        self.check_for_updates()
 
-    def check_mouse(self):
+    def check_for_updates(self):
+        do_redraw = False
+        # increment time since last action
+        self.ms_since_last_action += update_interval
+        if self.ms_since_last_action > fade_time:
+            if self.display_mode > resting_display_mode:
+                self.display_mode = self.display_mode - 1
+                self.ms_since_last_action = 0
+                do_redraw = True
+        # check to see if mouse has been moved manually
         pos = ctrl.mouse_pos()
         if pos != self.last_pos:
             x, y = pos
             self.last_pos = pos
+            do_redraw = True
+        if do_redraw:
             self.canvas.move(0,0) # this forces canvas redraw
             
 
@@ -349,7 +365,7 @@ eagle_object = Eagle(5000, 5000)
 # eagle_object.enable()
 
 mod = Module()
-mod.list('eagle_display_mode', desc = 'amount of information displayed in compass grid')
+mod.list('eagle_display_modes', desc = 'amount of information displayed in compass grid')
 mod.tag("eagle_showing", desc="Tag indicates whether the eagle compass is showing")
 
 @mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)] | up | down | right | left)")
@@ -376,6 +392,8 @@ def update_canvas():
     bearing = eagle_object.bearing
     eagle_object.disable()
     eagle_object.enable(bearing)
+    eagle_object.display_mode = active_display_mode
+    eagle_object.ms_since_last_action = 0
         
 @mod.action_class
 class Actions:
@@ -385,7 +403,7 @@ class Actions:
         update_canvas()
         ctx.tags = ["user.eagle_showing"]
 
-    def eagle_head_start(bearing: float):
+    def set_cardinal(bearing: float):
         """enable relative mouse guide and point to given bearing direction"""
         eagle_object.enable(bearing)
         update_canvas()
@@ -399,11 +417,6 @@ class Actions:
     def eagle_toggle():
         """Toggle relative mouse guide"""
         eagle_object.toggle()
-
-    def set_cardinal(target: float):
-        """set the bearing to a cardinal direction"""
-        eagle_object.bearing = target
-        update_canvas()
 
     def move_cardinal(move_degrees: int, target: float):
         """move the bearing direction a certain number of degrees towards a cardinal direction"""
@@ -419,9 +432,10 @@ class Actions:
             move_degrees = -move_degrees
             
         # perform movement!
-        eagle_object.bearing = (eagle_object.bearing + move_degrees) % 360
+        # eagle_object.bearing = (eagle_object.bearing + move_degrees) % 360
+        eagle_object.enable((eagle_object.bearing + move_degrees) % 360)
         update_canvas()
-
+    
     def fly_out(distance: int):
         """move out the specified number of pixels"""
         eagle_object.distance = eagle_object.distance + distance
@@ -456,7 +470,7 @@ class Actions:
 
     def display_mode(mode: str):
         """change how much information is displayed in the compass grid"""
-        eagle_object.mode = eagle_display_mode[mode]
+        eagle_object.mode = eagle_display_modes[mode]
         update_canvas()
 
     def test(d1: float):
@@ -464,4 +478,4 @@ class Actions:
         x = 3
 
 ctx = Context()
-ctx.lists['user.eagle_display_mode'] = ['heavy','medium','light','tiny']# eagle_display_mode.keys()
+ctx.lists['user.eagle_display_modes'] = ['heavy','medium','light','tiny']# eagle_display_modes.keys()
