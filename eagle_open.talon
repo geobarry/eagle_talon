@@ -1,6 +1,6 @@
 tag: user.eagle_showing
 -
-# SHUT DOWN EAGLEr
+# SHUT DOWN EAGLE
 (eagle off|eagle laugh|eagle out|grid off):
 	user.eagle_disable()
 
@@ -28,5 +28,5 @@ reverse:
 	user.reverse()
 	
 # change display mode
-eagle display {user.eagle_display_mode}:
-	user.display_mode(user.eagle_display_mode)
+eagle display {user.eagle_display_modes}:
+	user.display_mode(user.eagle_display_modes)

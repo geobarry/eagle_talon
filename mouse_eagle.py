@@ -1,14 +1,16 @@
 # module to control mouse using directions and distances
 from typing import Tuple
-from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui
+from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui, actions
 import math, time
 mode_label = {1:'tiny',2:'light',3:'medium',4:'heavy'}
 eagle_display_modes = {'heavy':4,'medium':3,'light':2,'tiny':1}
 active_display_mode = 3
 resting_display_mode = 1
-update_interval = 16
+update_interval = 30
 fade_time = 10000 # ten seconds
 
+def f_distance(from_pos,to_pos):
+    return (((to_pos[0]-from_pos[0]) ** 2) + ((to_pos[1] - from_pos[1]) ** 2))**0.5
 
 class Eagle:
     def __init__(self, width: float, height: float):
@@ -16,13 +18,16 @@ class Eagle:
         self.canvas = None
         self.job = None
         self.last_pos = None
+        self.target_pos = None
         self.width = width
         self.height = height
-        self.bearing = -1
+        self.bearing = 0
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
         self.display_mode = active_display_mode
-        self.ms_since_last_action = 0
+        self.elapsed_ms = 0
+        self.target_ms = 1500
+        self.target_pos = None
         
     def enable(self, bearing = -1):
         self.bearing = bearing
@@ -30,6 +35,9 @@ class Eagle:
             return
         self.enabled = True
         self.last_pos = ctrl.mouse_pos()        
+        self.cur_pos = self.last_pos 
+#        self.target_pos = self.last_pos
+        print("INITIALING TARGET POSITION")
         screen = ui.main_screen()
         self.width, self.height = screen.width, screen.height
         self.canvas = canvas.Canvas.from_screen(screen)#  canvas.Canvas(0, 0, self.width, self.height)
@@ -110,7 +118,7 @@ class Eagle:
         paint.color = 'fff'
         paint.font.size = 36
         rect = canvas.rect
-        cx, cy = self.last_pos
+        cx, cy = self.cur_pos
 
         def line_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
             for off, color in ((1, color_alias),(-1, color_alias),(0.5, color_main),(-0.5, color_main),(0, color_main)):
@@ -342,21 +350,50 @@ class Eagle:
     def on_mouse(self, event):
         self.check_for_updates()
 
+    def next_position_linear(self):
+        rem_ms = self.target_ms - self.elapsed_ms
+        rem_dist = f_distance(self.cur_pos,self.target_pos)
+        print(f"remaining ms:{rem_ms} dist:{rem_dist}")
+        print(f"cur_pos: {self.cur_pos}")
+        
+        if rem_ms > 0:
+            dist_per_ms = rem_dist / rem_ms
+            x = self.cur_pos[0] + (self.target_pos[0] - self.cur_pos[0]) * update_interval / rem_ms
+            y = self.cur_pos[1] + (self.target_pos[1] - self.cur_pos[1]) * update_interval / rem_ms
+            return x,y
+        else:
+            return self.target_pos
+        
+        
+
     def check_for_updates(self):
+        #print("starting function check_for_updates")
         do_redraw = False
         # increment time since last action
-        self.ms_since_last_action += update_interval
-        if self.ms_since_last_action > fade_time:
+        self.elapsed_ms += update_interval
+        if self.elapsed_ms > fade_time:
             if self.display_mode > resting_display_mode:
+                ctx.tags = ["user.eagle_showing","user.eagle_active"]
                 self.display_mode = self.display_mode - 1
-                self.ms_since_last_action = 0
+                self.elapsed_ms = 0
                 do_redraw = True
-        # check to see if mouse has been moved manually
-        pos = ctrl.mouse_pos()
-        if pos != self.last_pos:
-            x, y = pos
-            self.last_pos = pos
-            do_redraw = True
+            else:
+                ctx.tags = ["user.eagle_showing"]
+        # check to see if we've reached the target position
+        if self.target_pos != None:
+            if self.cur_pos == self.target_pos:
+                self.last_pos = self.cur_pos
+                do_redraw = True
+                # print("reached target")
+                # print(f"reached_x: {self.cur_pos[0]}")
+            else:
+                # update position
+                print("updating position")
+                self.cur_pos = self.next_position_linear()
+                ctrl.mouse_move(self.cur_pos[0],self.cur_pos[1]) 
+                do_redraw = True
+                if self.cur_pos == self.target_pos:
+                    self.elapsed_ms = True # reset timer for fade
         if do_redraw:
             self.canvas.move(0,0) # this forces canvas redraw
             
@@ -367,6 +404,7 @@ eagle_object = Eagle(5000, 5000)
 mod = Module()
 mod.list('eagle_display_modes', desc = 'amount of information displayed in compass grid')
 mod.tag("eagle_showing", desc="Tag indicates whether the eagle compass is showing")
+mod.tag("eagle_active", desc = "Eagle is active if the full display is still showing")
 
 @mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)] | up | down | right | left)")
 def bearing_capture(m) -> float:
@@ -389,11 +427,13 @@ def bearing_capture(m) -> float:
     return bearing
 
 def update_canvas():
-    bearing = eagle_object.bearing
-    eagle_object.disable()
-    eagle_object.enable(bearing)
-    eagle_object.display_mode = active_display_mode
-    eagle_object.ms_since_last_action = 0
+    eagle_object.canvas.move(0,0) # this forces canvas redraw
+    
+    # bearing = eagle_object.bearing
+    # eagle_object.disable()
+    # eagle_object.enable(bearing)
+    # eagle_object.display_mode = active_display_mode
+    # eagle_object.elapsed_ms = 0
         
 @mod.action_class
 class Actions:
@@ -401,13 +441,17 @@ class Actions:
         """Enable relative mouse guide"""
         eagle_object.enable()
         update_canvas()
-        ctx.tags = ["user.eagle_showing"]
+        eagle_object.elapsed_ms = 0
+        eagle_object.display_mode = active_display_mode
+        ctx.tags = ["user.eagle_showing","user.eagle_active"]
 
     def set_cardinal(bearing: float):
         """enable relative mouse guide and point to given bearing direction"""
         eagle_object.enable(bearing)
         update_canvas()
-        ctx.tags = ["user.eagle_showing"]
+        eagle_object.elapsed_ms = 0
+        eagle_object.display_mode = active_display_mode
+        ctx.tags = ["user.eagle_showing","user.eagle_active"]
         
     def eagle_disable():
         """Disable relative mouse guide"""
@@ -440,31 +484,37 @@ class Actions:
         """move out the specified number of pixels"""
         eagle_object.distance = eagle_object.distance + distance
         cx,cy = eagle_object.last_pos        
-        x,y = eagle_object.pot_of_gold(cx, cy, distance, eagle_object.bearing)
-        ctrl.mouse_move(x, y)
+        eagle_object.target_pos = eagle_object.pot_of_gold(cx, cy, distance, eagle_object.bearing)
         eagle_object.distance = 0
-        eagle_object.last_pos = x,y
-        update_canvas()
+        eagle_object.elapsed_ms = 0
+
+    def five_fly_out(distance_string: str):
+        """handles the case when talon hears five instead of fly"""
+        first_digit = distance_string[0]
+        # try to catch when the user is entering a real number
+        if len(distance_string) == 1 or first_digit != "5":
+            actions.insert(distance_string)
+        else:
+            remaining_digits = distance_string[1:]
+            true_distance = float(remaining_digits)
+            actions.user.fly_out(true_distance)
 
     def reverse():
         """reverse direction"""
         eagle_object.bearing = (eagle_object.bearing + 180) % 360        
         update_canvas()
+        eagle_object.elapsed_ms = 0
+        eagle_object.display_mode = active_display_mode
 
     def fly_back(distance: int):
         """turn around and move back the specified number of pixels"""
-        cx,cy = eagle_object.last_pos        
-        reverse_bearing = (eagle_object.bearing + 180) % 360
-        x,y = eagle_object.pot_of_gold(cx, cy, distance, reverse_bearing)
-        ctrl.mouse_move(x, y)
-        eagle_object.distance = 0
-        eagle_object.last_pos = x,y
-        update_canvas()
+        eagle_object.bearing = (eagle_object.bearing + 180) % 360
+        actions.user.fly_out(distance)
         
     def center_eagle():
         """move mouse to center of screen"""
         x,y = int(eagle_object.width/2), int(eagle_object.height/2)
-        ctrl.mouse_move(x,y)
+        #ctrl.mouse_move(x,y)
         eagle_object.last_pos = x,y
         update_canvas()
 
