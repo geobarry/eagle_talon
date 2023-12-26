@@ -27,6 +27,8 @@ class Eagle:
         self.display_mode = active_display_mode
         self.elapsed_ms = 0
         self.target_ms = 1500
+        self.max_ms = 1500
+        self.min_ms = 100
         self.target_pos = None
         
     def enable(self, bearing = -1):
@@ -351,26 +353,46 @@ class Eagle:
         self.check_for_updates()
 
     def next_position_linear(self):
+        totD = f_distance(self.last_pos,self.target_pos) 
+        if totD < 10:
+            self.target_ms = self.min_ms
+        elif totD > 1000:
+            self.target_ms = self.max_ms
+        else:
+            p = ( (totD - 10) / 990) ** 0.62  
+            self.target_ms = self.min_ms + p * (self.max_ms - self.min_ms)
+            print(p)            
+        # this is nothing        
         rem_ms = self.target_ms - self.elapsed_ms
         rem_dist = f_distance(self.cur_pos,self.target_pos)
+
         print(f"remaining ms:{rem_ms} dist:{rem_dist}")
         print(f"cur_pos: {self.cur_pos}")
+        print(f"target_pos: {self.target_pos}")
         
         if rem_ms > 0:
             dist_per_ms = rem_dist / rem_ms
             x = self.cur_pos[0] + (self.target_pos[0] - self.cur_pos[0]) * update_interval / rem_ms
             y = self.cur_pos[1] + (self.target_pos[1] - self.cur_pos[1]) * update_interval / rem_ms
-            return x,y
+            return round(x),round(y)
         else:
             return self.target_pos
         
         
 
     def check_for_updates(self):
-        #print("starting function check_for_updates")
         do_redraw = False
         # increment time since last action
         self.elapsed_ms += update_interval
+        # check for manual mouse movement
+        if self.cur_pos == self.last_pos:
+            pos = ctrl.mouse_pos()
+            if pos != self.cur_pos:
+                self.cur_pos = pos
+                self.last_pos = self.cur_pos
+                self.target_pos = self.cur_pos
+                print("mouse moved")
+        # fade radial grid
         if self.elapsed_ms > fade_time:
             if self.display_mode > resting_display_mode:
                 ctx.tags = ["user.eagle_showing","user.eagle_active"]
@@ -407,7 +429,7 @@ mod.tag("eagle_showing", desc="Tag indicates whether the eagle compass is showin
 mod.tag("eagle_active", desc = "Eagle is active if the full display is still showing")
 
 @mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)] | up | down | right | left)")
-def bearing_capture(m) -> float:
+def bearing(m) -> float:
     """determines bearing from spoken compass direction"""
     def bearing_average(b1,b2):
         difference = ((b2 - b1 + 180) % 360) - 180
@@ -462,7 +484,7 @@ class Actions:
         """Toggle relative mouse guide"""
         eagle_object.toggle()
 
-    def move_cardinal(move_degrees: int, target: float):
+    def move_cardinal(move_degrees: float, target: float):
         """move the bearing direction a certain number of degrees towards a cardinal direction"""
         # determine difference between current bearing and target bearing
         delta = (((target - eagle_object.bearing) + 180) % 360) - 180
@@ -478,15 +500,20 @@ class Actions:
         # perform movement!
         # eagle_object.bearing = (eagle_object.bearing + move_degrees) % 360
         eagle_object.enable((eagle_object.bearing + move_degrees) % 360)
+        eagle_object.elapsed_ms = 0
+        eagle_object.display_mode = active_display_mode
         update_canvas()
     
-    def fly_out(distance: int):
+    def fly_out(distance: int, max_ms: int = -1):
         """move out the specified number of pixels"""
-        eagle_object.distance = eagle_object.distance + distance
         cx,cy = eagle_object.last_pos        
-        eagle_object.target_pos = eagle_object.pot_of_gold(cx, cy, distance, eagle_object.bearing)
-        eagle_object.distance = 0
+        target = eagle_object.pot_of_gold(cx, cy, distance, eagle_object.bearing)
+        eagle_object.target_pos = (round(target[0]),round(target[1]))
+        if max_ms > 0:
+            eagle_object.max_ms = max_ms
         eagle_object.elapsed_ms = 0
+        eagle_object.display_mode = active_display_mode
+        update_canvas()
 
     def five_fly_out(distance_string: str):
         """handles the case when talon hears five instead of fly"""
