@@ -10,7 +10,7 @@ reverse: user.reverse()
 # ROTATE
 # rotate compass bearing towards a compass direction, e.g. '30 (east|right)'
 <number> <user.bearing>: user.move_cardinal(number, user.bearing)
-nudge <user.bearing>: user.move_cardinal(0.3!,user.bearing)
+nudge <user.bearing>: user.move_cardinal(0.3,user.bearing)
 
 # MOVE
 # move specified distance in pixels, e.g. '(jump|fly|walk|crawl) five hundred'

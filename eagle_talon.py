@@ -38,8 +38,6 @@ class Eagle:
         self.enabled = True
         self.last_pos = ctrl.mouse_pos()        
         self.cur_pos = self.last_pos 
-#        self.target_pos = self.last_pos
-        print("INITIALING TARGET POSITION")
         screen = ui.main_screen()
         self.width, self.height = screen.width, screen.height
         self.canvas = canvas.Canvas.from_screen(screen)#  canvas.Canvas(0, 0, self.width, self.height)
@@ -130,7 +128,16 @@ class Eagle:
                 canvas.draw_line(start_x, start_y, finish_x, finish_y)
 
         def line_thick_aliased(x,y,distance,bearing, color_main = 'ffffff99', color_alias = '00000099'):
-            for off, color in ((1.5, color_alias),(-1.5, color_alias),(1, color_main),(-1, color_main),(0.5, color_main),(-0.5, color_main),(0, color_main)):
+            for off, color in (
+                    (2, color_alias),
+                    (-2, color_alias),
+                    (1.5, color_alias),
+                    (-1.5, color_alias),
+                    (1, color_main),
+                    (-1, color_main),
+                    (0.5, color_main),
+                    (-0.5, color_main),
+                    (0, color_main)):
                 paint.color = color
                 start_x,start_y = self.pot_of_gold(x,y,off,bearing + 90)
                 finish_x,finish_y = self.pot_of_gold(start_x,start_y,distance,bearing)
@@ -138,16 +145,17 @@ class Eagle:
 
         def text_aliased(label,x,y,font_size):
                 paint.font.size = font_size
-                # spine-black and more transparent
-                paint.color = '00000077'
-                canvas.draw_text(label,x-2,y-2)
-                canvas.draw_text(label,x+2,y-2)
-                canvas.draw_text(label,x+2,y+2)
-                canvas.draw_text(label,x-2,y+2)
-                canvas.draw_text(label,x-2,y-1)
-                canvas.draw_text(label,x+1,y-1)
-                canvas.draw_text(label,x+1,y+1)
-                canvas.draw_text(label,x-2,y+1)
+                limit = 2
+                for dx in range(-limit,limit+1):
+                    for dy in range(-limit,limit+1):
+                        # spine-black and more transparent towards edges
+                        dist = ((dx ** 2) + (dy ** 2)) ** 0.5
+                        transparency = min(15,15 * (dist / limit)**0.55)
+                        transparency = int(transparency)
+                        transparency = hex(transparency)[2:]
+                        transparency = "f"
+                        paint.color = f'000000{transparency}{transparency}'
+                        canvas.draw_text(label,x + dx,y + dy)
 
                 # outline-white and less transparent
                 paint.color = 'ffffffee'
@@ -205,7 +213,7 @@ class Eagle:
                     start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius - short_crosshair_length,startBearing + bearing_adjust)
                     line_aliased(start_x, start_y, short_crosshair_length, startBearing + bearing_adjust, color_main = 'ff9999ff', color_alias = 'ffffff99')
 
-        if mode_label[self.display_mode] in ['tiny']: 
+        if mode_label[self.display_mode] in ['heavy','medium','light','tiny']: 
             # draw an extra little arrow for tiny display
             start_x,start_y = self.pot_of_gold(cx,cy,crosshair_radius,startBearing)
             line_aliased(start_x, start_y, crosshair_radius * 0.5, startBearing, color_main = 'ff9999ff', color_alias = 'ffffff99')
@@ -256,6 +264,7 @@ class Eagle:
             label_spacings = []
             if mode_label[self.display_mode] in ['heavy','medium','light']:
                 spacings += [500,100]
+                label_spacings += [500]
                 if mode_label[self.display_mode] in ['heavy','medium']:
                     spacings += [50,10]
                     label_spacings += [100]
@@ -361,15 +370,10 @@ class Eagle:
         else:
             p = ( (totD - 10) / 990) ** 0.62  
             self.target_ms = self.min_ms + p * (self.max_ms - self.min_ms)
-            print(p)            
         # this is nothing        
         rem_ms = self.target_ms - self.elapsed_ms
         rem_dist = f_distance(self.cur_pos,self.target_pos)
 
-        print(f"remaining ms:{rem_ms} dist:{rem_dist}")
-        print(f"cur_pos: {self.cur_pos}")
-        print(f"target_pos: {self.target_pos}")
-        
         if rem_ms > 0:
             dist_per_ms = rem_dist / rem_ms
             x = self.cur_pos[0] + (self.target_pos[0] - self.cur_pos[0]) * update_interval / rem_ms
@@ -391,7 +395,6 @@ class Eagle:
                 self.cur_pos = pos
                 self.last_pos = self.cur_pos
                 self.target_pos = self.cur_pos
-                print("mouse moved")
         # fade radial grid
         if self.elapsed_ms > fade_time:
             if self.display_mode > resting_display_mode:
@@ -406,11 +409,8 @@ class Eagle:
             if self.cur_pos == self.target_pos:
                 self.last_pos = self.cur_pos
                 do_redraw = True
-                # print("reached target")
-                # print(f"reached_x: {self.cur_pos[0]}")
             else:
                 # update position
-                print("updating position")
                 self.cur_pos = self.next_position_linear()
                 ctrl.mouse_move(self.cur_pos[0],self.cur_pos[1]) 
                 do_redraw = True
@@ -502,6 +502,7 @@ class Actions:
         eagle_object.enable((eagle_object.bearing + move_degrees) % 360)
         eagle_object.elapsed_ms = 0
         eagle_object.display_mode = active_display_mode
+        ctx.tags = ["user.eagle_showing","user.eagle_active"]
         update_canvas()
     
     def fly_out(distance: int, max_ms: int = -1):
@@ -513,6 +514,7 @@ class Actions:
             eagle_object.max_ms = max_ms
         eagle_object.elapsed_ms = 0
         eagle_object.display_mode = active_display_mode
+        ctx.tags = ["user.eagle_showing","user.eagle_active"]
         update_canvas()
 
     def five_fly_out(distance_string: str):
@@ -541,9 +543,13 @@ class Actions:
     def center_eagle():
         """move mouse to center of screen"""
         x,y = int(eagle_object.width/2), int(eagle_object.height/2)
-        #ctrl.mouse_move(x,y)
+        ctrl.mouse_move(x,y)
         eagle_object.last_pos = x,y
+        eagle_object.cur_pos = x,y
+        eagle_object.target_pos = x,y
+        eagle_object.bearing = -1
         update_canvas()
+        ctx.tags = ["user.eagle_showing","user.eagle_active"]
 
     def display_mode(mode: str):
         """change how much information is displayed in the compass grid"""
