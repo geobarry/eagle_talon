@@ -539,6 +539,7 @@ class Actions:
         """turn around and move back the specified number of pixels"""
         eagle_object.bearing = (eagle_object.bearing + 180) % 360
         actions.user.fly_out(distance)
+        eagle_object.bearing = (eagle_object.bearing + 180) % 360
         
     def center_eagle():
         """move mouse to center of screen"""
