@@ -40,6 +40,7 @@ class Eagle:
         self.cur_pos = self.last_pos 
         screen = ui.main_screen()
         self.width, self.height = screen.width, screen.height
+        print(f"eagle.enable: width={self.width} | height={self.height}")
         self.canvas = canvas.Canvas.from_screen(screen)#  canvas.Canvas(0, 0, self.width, self.height)
         self.check_for_updates()
         self.canvas.register('mousemove', self.on_mouse)
@@ -478,6 +479,7 @@ class Actions:
     def eagle_disable():
         """Disable relative mouse guide"""
         eagle_object.disable()
+        print("Eagle is disabled!")
         ctx.tags = []
         
     def eagle_toggle():
