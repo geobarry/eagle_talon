@@ -551,8 +551,8 @@ class Actions:
         eagle_object.cur_pos = x,y
         eagle_object.target_pos = x,y
         eagle_object.bearing = -1
-        update_canvas()
         ctx.tags = ["user.eagle_showing","user.eagle_active"]
+        update_canvas()
 
     def display_mode(mode: str):
         """change how much information is displayed in the compass grid"""
