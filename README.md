@@ -42,7 +42,7 @@ A slightly more complicated sequence showing some additional capabilities:
 <br/>
 
 # More Detailed Command List
-(but maybe not comprehensive - always check actual talent files for most up to date list)
+(but maybe not comprehensive - always check actual talon files for most up to date list)
 
 ### Commands always available
 ``` Eagle On ```  
@@ -87,7 +87,7 @@ Eagle remains active for approx. 15 seconds after every spoken eagle command, to
   * set Eagle's bearing to the given compass direction  
   * a navigation grid will appear showing direction adjustments (in degrees) and distances (in pixels)
 
-``` Fly <number> ```  
+``` (Jump|Fly|Walk|Crawl) <number> ```  
   * moves the mouse the specified distance in pixels in the direction of Eagle's current bearing
   * Pro tip: When trying to click on something all the way across the screen, it may be difficult to get the bearing angle to land on exactly where you want to go. In this case, a good strategy is to bring the mouse close to but not quite all the way to your desired destination, then adjust the bearing a little bit and repeat. For example, if you want to hit a target that is 1000 pixels away to the upper right, you could say ```Eagle Northeast``` ```Fly 950``` to get into the general vicinity, then adjust the bearing more precisely for the final 50 pixels.   
 
