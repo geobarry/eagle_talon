@@ -1,10 +1,10 @@
+
 # module to control mouse using directions and distances
 from typing import Tuple
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui, actions
 import math, time
 mode_label = {1:'tiny',2:'light',3:'medium',4:'heavy'}
 eagle_display_modes = {'heavy':4,'medium':3,'light':2,'tiny':1}
-active_display_mode = 3
 resting_display_mode = 1
 update_interval = 30
 fade_time = 10000 # ten seconds
@@ -24,7 +24,8 @@ class Eagle:
         self.bearing = 0
         self.distance = 0
         self.max_distance = (self.width ** 2 + self.height ** 2) ** 0.5
-        self.display_mode = active_display_mode
+        self.active_display_mode = 3
+        self.display_mode = self.active_display_mode
         self.elapsed_ms = 0
         self.target_ms = 1500
         self.max_ms = 1500
@@ -404,7 +405,8 @@ class Eagle:
                 self.elapsed_ms = 0
                 do_redraw = True
             else:
-                ctx.tags = ["user.eagle_showing"]
+                if self.elapsed_ms < fade_time:
+                    ctx.tags = ["user.eagle_showing"]
         # check to see if we've reached the target position
         if self.target_pos != None:
             if self.cur_pos == self.target_pos:
@@ -465,7 +467,7 @@ class Actions:
         eagle_object.enable()
         update_canvas()
         eagle_object.elapsed_ms = 0
-        eagle_object.display_mode = active_display_mode
+        eagle_object.display_mode = eagle_object.active_display_mode
         ctx.tags = ["user.eagle_showing","user.eagle_active"]
 
     def set_cardinal(bearing: float):
@@ -473,7 +475,7 @@ class Actions:
         eagle_object.enable(bearing)
         update_canvas()
         eagle_object.elapsed_ms = 0
-        eagle_object.display_mode = active_display_mode
+        eagle_object.display_mode = eagle_object.active_display_mode
         ctx.tags = ["user.eagle_showing","user.eagle_active"]
         
     def eagle_disable():
@@ -503,7 +505,7 @@ class Actions:
         # eagle_object.bearing = (eagle_object.bearing + move_degrees) % 360
         eagle_object.enable((eagle_object.bearing + move_degrees) % 360)
         eagle_object.elapsed_ms = 0
-        eagle_object.display_mode = active_display_mode
+        eagle_object.display_mode = eagle_object.active_display_mode
         ctx.tags = ["user.eagle_showing","user.eagle_active"]
         update_canvas()
     
@@ -515,7 +517,7 @@ class Actions:
         if max_ms > 0:
             eagle_object.max_ms = max_ms
         eagle_object.elapsed_ms = 0
-        eagle_object.display_mode = active_display_mode
+        eagle_object.display_mode = eagle_object.active_display_mode
         ctx.tags = ["user.eagle_showing","user.eagle_active"]
         update_canvas()
 
@@ -535,7 +537,7 @@ class Actions:
         eagle_object.bearing = (eagle_object.bearing + 180) % 360        
         update_canvas()
         eagle_object.elapsed_ms = 0
-        eagle_object.display_mode = active_display_mode
+        eagle_object.display_mode = eagle_object.active_display_mode
 
     def fly_back(distance: int):
         """turn around and move back the specified number of pixels"""
@@ -556,9 +558,10 @@ class Actions:
 
     def display_mode(mode: str):
         """change how much information is displayed in the compass grid"""
-        eagle_object.mode = eagle_display_modes[mode]
+        eagle_object.active_display_mode = eagle_display_modes[mode]
+        eagle_object.display_mode = eagle_object.active_display_mode
         update_canvas()
-
+        
     def test(d1: float):
         """test function"""
         x = 3
