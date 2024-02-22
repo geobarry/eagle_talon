@@ -20,7 +20,7 @@ nudge <user.bearing>: user.move_cardinal(0.3,user.bearing)
 # MOVE
 # move specified distance in pixels, e.g. '(jump|fly|walk|crawl) five hundred'
 jump <number>: user.fly_out(number,10)
-fly <number>: user.fly_out(number,1000)
+(fly|five) <number>: user.fly_out(number,1000)
 walk <number>: user.fly_out(number,3000)
 crawl <number>: user.fly_out(number,8000)
 
@@ -28,4 +28,4 @@ crawl <number>: user.fly_out(number,8000)
 backup <number>: user.fly_back(number)
 	
 # CATCH COMMON SPEECH MISRECOGNITION ('fly' heard as 'five')
-<user.number_string>: user.five_fly_out(number_string)
+#five <user.number_string>: user.five_fly_out(number_string)

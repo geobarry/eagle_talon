@@ -289,6 +289,8 @@ class Eagle:
                                 sx,sy = self.pot_of_gold(x,y,size/2,self.bearing - 90)
                                 if spacing == 10:
                                     line_aliased(sx,sy,size,self.bearing + 90)
+                                elif spacing == 500:
+                                    line_thick_aliased(sx,sy,size,self.bearing + 90,color_main = "ff999999")
                                 else:
                                     line_thick_aliased(sx,sy,size,self.bearing + 90)
                                 # draw crosshairs for display light mode
