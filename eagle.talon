@@ -1,6 +1,6 @@
-(eagle|head go|we go)  [(on|mouse)]:
+eagle on:
     user.eagle_enable()
-(eagle|head go|we go) <user.bearing>:
-	user.set_cardinal(user.bearing)
-(eagle|head go|we go)  (center|compass):
+eagle <user.bearing>:
+	user.eagle_set_bearing(user.bearing)
+eagle  center:
 	user.center_eagle()

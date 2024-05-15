@@ -7,7 +7,7 @@ tag: user.eagle_active
 
 # SET DIRECTION
 # set the movement direction to a compasss direction, e.g. 'north-northeast','up'
-<user.bearing>:	user.set_cardinal(user.bearing)
+<user.bearing>:	user.eagle_set_bearing(user.bearing)
 # reverse direction  
 reverse: user.reverse()
 
@@ -29,3 +29,4 @@ backup <number>: user.fly_back(number)
 	
 # CATCH COMMON SPEECH MISRECOGNITION ('fly' heard as 'five')
 #five <user.number_string>: user.five_fly_out(number_string)
+  

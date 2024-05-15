@@ -1,4 +1,3 @@
-
 # module to control mouse using directions and distances
 from typing import Tuple
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui, actions
@@ -433,7 +432,7 @@ mod.list('eagle_display_modes', desc = 'amount of information displayed in compa
 mod.tag("eagle_showing", desc="Tag indicates whether the eagle compass is showing")
 mod.tag("eagle_active", desc = "Eagle is active if the full display is still showing")
 
-@mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)] | up | down | right | left)")
+@mod.capture(rule="((north | east | south | west | northeast | southeast | southwest | northwest) [(north | east | south | west | northeast | southeast | southwest | northwest)])")
 def bearing(m) -> float:
     """determines bearing from spoken compass direction"""
     def bearing_average(b1,b2):
@@ -442,8 +441,7 @@ def bearing(m) -> float:
         
     bearing_lookup = {
         'northeast':45,'southeast':135,'southwest':225,'northwest':315,
-        'north':0,'east':90,'south':180,'west':270,
-        'up':0,'right':90,'down':180,'left':270
+        'north':0,'east':90,'south':180,'west':270
         }
     bearing = None
     for w in range(len(m)-1,-1,-1):
@@ -472,7 +470,11 @@ class Actions:
         eagle_object.display_mode = eagle_object.active_display_mode
         ctx.tags = ["user.eagle_showing","user.eagle_active"]
 
-    def set_cardinal(bearing: float):
+    def eagle_catch_mouse():
+        """Updates eagle position to current mouse position"""
+        update_canvas()
+
+    def eagle_set_bearing(bearing: float):
         """enable relative mouse guide and point to given bearing direction"""
         eagle_object.enable(bearing)
         update_canvas()
