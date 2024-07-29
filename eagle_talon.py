@@ -2,9 +2,9 @@
 from typing import Tuple
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui, actions
 import math, time
-mode_label = {1:'tiny',2:'light',3:'medium',4:'heavy'}
-eagle_display_modes = {'heavy':4,'medium':3,'light':2,'tiny':1}
-resting_display_mode = 1
+mode_label = {0:'none',1:'tiny',2:'light',3:'medium',4:'heavy'}
+eagle_display_modes = {'heavy':4,'medium':3,'light':2,'tiny':1,'none':0}
+resting_display_mode = 0
 update_interval = 30
 fade_time = 10000 # ten seconds
 
@@ -571,4 +571,4 @@ class Actions:
         x = 3
 
 ctx = Context()
-ctx.lists['user.eagle_display_modes'] = ['heavy','medium','light','tiny']# eagle_display_modes.keys()
+ctx.lists['user.eagle_display_modes'] = ['heavy','medium','light','tiny','none']# eagle_display_modes.keys()
