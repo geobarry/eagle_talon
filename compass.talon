@@ -1,5 +1,6 @@
 mode: user.compass
 -
+
 # COMMANDS THAT WILL EXIT COMPASS, INCLUDING MOUSE COMMANDS
 exit compass: 
 	user.eagle_disable()
@@ -11,7 +12,7 @@ exit compass:
 	mouse_click(1)
 	user.eagle_disable()
 drag end:
-    user.mouse_drag_end(0)
+    user.mouse_drag_end()
 	user.eagle_disable()
 (double click | dub click | duke):
 	mouse_click() 
@@ -73,3 +74,7 @@ crawl <number>$: user.fly_out(number,8000)
 # move backwards specified distance in pixels
 backup <number>$: user.fly_back(number)
 
+# COMMANDS FOR DEBUGGING
+^talon test last$:
+    phrase = user.history_get(1)
+    user.talon_sim_phrase(phrase)
