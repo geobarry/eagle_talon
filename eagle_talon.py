@@ -1,7 +1,7 @@
 # module to control mouse using directions and distances
 from typing import Tuple
 from talon import Context, Module, canvas, cron, ctrl, cron, screen, ui, actions
-import math, time
+import math, time, random
 mode_label = {0:'none',1:'tiny',2:'light',3:'medium',4:'heavy'}
 eagle_display_modes = {'heavy':4,'medium':3,'light':2,'tiny':1,'none':0}
 resting_display_mode = 0
@@ -394,6 +394,18 @@ class Actions:
         eagle_object.bearing = (eagle_object.bearing + 180) % 360
         actions.user.fly_out(distance)
         eagle_object.bearing = (eagle_object.bearing + 180) % 360
+
+    def compass_jiggle(max_dist: int = 10):
+        """move the mouse around a little"""
+        pos = ctrl.mouse_pos()
+        init_x,init_y = pos[0],pos[1]
+        for n in range(10):
+            d = max_dist*random.random()
+            b = 360*random.random()
+            trg = eagle_object.pot_of_gold(init_x,init_y,d,b)
+            actions.user.slow_mouse(round(trg[0]),round(trg[1]),50)
+            actions.sleep("50ms")
+        actions.user.slow_mouse(round(trg[0]),round(trg[1]),50)
         
     def center_eagle():
         """move mouse to center of screen"""
